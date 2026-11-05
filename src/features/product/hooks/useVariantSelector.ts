@@ -11,8 +11,6 @@ import { gallerySrcsForSelection } from "../lib/productMedia";
 import {
     findShopVariant,
     findShopVariantByNames,
-    findShopVariantWithOptionId,
-    findShopVariantWithValue,
     isIndependentPickerAttribute,
     optionHexById,
     resolveAttributeOptions,
@@ -40,6 +38,9 @@ interface AvailableAttribute extends AttributeMapItem {
     valueHex: Record<number, string>;
 }
 
+/** Partial picker state: attribute name → chosen option id. */
+type PickedOptionIds = Record<string, number>;
+
 function comboAttributes(variant: ShopVariant) {
     return variant.attributes ?? [];
 }
@@ -53,23 +54,60 @@ function attributesFromVariant(variant: ShopVariant | null): SelectedAttributes 
     return attrs;
 }
 
-function firstComboVariant(variants: ShopVariant[]): ShopVariant | undefined {
-    return variants.find((variant) => comboAttributes(variant).length > 0);
+function attributesFromPicks(
+    picks: PickedOptionIds,
+    attributesMap: AttributeMapItem[],
+    shopVariants: ShopVariant[],
+): SelectedAttributes {
+    const attrs: SelectedAttributes = {};
+    for (const attr of attributesMap) {
+        const optionId = picks[attr.attribute];
+        if (optionId == null) continue;
+        const options = resolveAttributeOptions(attr, shopVariants);
+        const option = options.find((o) => o.id === optionId);
+        if (option?.name) attrs[attr.attribute] = option.name;
+    }
+    return attrs;
 }
 
-function defaultVariant(
+function idsFromPicks(picks: PickedOptionIds): number[] {
+    return Object.values(picks).filter(
+        (id) => Number.isFinite(id) && id > 0,
+    );
+}
+
+/**
+ * Keep the newly chosen axis; drop other axes that no longer appear together
+ * on any shop row (e.g. colour change clears an unavailable size).
+ */
+function reconcilePicks(
     shopVariants: ShopVariant[],
-    hasAttributeMatrix: boolean,
+    previous: PickedOptionIds,
+    attrName: string,
+    optionId: number,
+): PickedOptionIds {
+    const kept: PickedOptionIds = { [attrName]: optionId };
+
+    for (const [name, id] of Object.entries(previous)) {
+        if (name === attrName) continue;
+        const candidate = { ...kept, [name]: id };
+        if (findShopVariant(shopVariants, idsFromPicks(candidate))) {
+            kept[name] = id;
+        }
+    }
+
+    return kept;
+}
+
+function defaultPlainVariant(
+    shopVariants: ShopVariant[],
 ): ShopVariant | undefined {
     if (shopVariants.length === 0) return undefined;
-    if (!hasAttributeMatrix) {
-        return (
-            shopVariants.find(isPurchasableVariant) ??
-            shopVariants.find(isVariantInStock) ??
-            shopVariants[0]
-        );
-    }
-    return firstComboVariant(shopVariants) ?? shopVariants[0];
+    return (
+        shopVariants.find(isPurchasableVariant) ??
+        shopVariants.find(isVariantInStock) ??
+        shopVariants[0]
+    );
 }
 
 function findVariantById(
@@ -78,6 +116,19 @@ function findVariantById(
 ): ShopVariant | undefined {
     if (id == null) return undefined;
     return shopVariants.find((variant) => variant.id === id);
+}
+
+function resolvePickedVariant(
+    shopVariants: ShopVariant[],
+    picks: PickedOptionIds,
+    selectedNames: SelectedAttributes,
+): ShopVariant | null {
+    const ids = idsFromPicks(picks);
+    if (!ids.length && !Object.keys(selectedNames).length) return null;
+    return (
+        (ids.length ? findShopVariant(shopVariants, ids) : null) ??
+        findShopVariantByNames(shopVariants, selectedNames)
+    );
 }
 
 interface UseVariantSelectorReturn {
@@ -90,6 +141,8 @@ interface UseVariantSelectorReturn {
     currentPriceAfterDiscount: number;
     currentImages: string[];
     currentQuantity: number | null;
+    /** True when every `attributes_map` axis has a pick (or there is no matrix). */
+    isSelectionComplete: boolean;
     isVariantSelected: boolean;
     availableAttributes: AvailableAttribute[];
 }
@@ -98,6 +151,10 @@ interface UseVariantSelectorReturn {
  * Picker state is `options[].id` / `attributes[].id`.
  * Labels (`name` / `value`) come from the last GET so a rename (صغير → XS)
  * only updates the shown text. Purchase identity is `shop_variants[].id`.
+ *
+ * When `attributes_map` is non-empty there is **no** default colour/size —
+ * `selectedVariant` stays null until the shopper completes a real combo.
+ * Plain products (`attributes_map` empty) still bind to `shop_variants[0]`.
  */
 export function useVariantSelector({
     productId,
@@ -108,87 +165,109 @@ export function useVariantSelector({
     basePrice,
     basePriceAfterDiscount,
 }: UseVariantSelectorParams): UseVariantSelectorReturn {
-    const [selectedShopVariantId, setSelectedShopVariantId] = useState<
-        number | null
-    >(null);
+    const [pickedByAttr, setPickedByAttr] = useState<PickedOptionIds>({});
+    /** Used only when there is no attribute matrix. */
+    const [plainVariantId, setPlainVariantId] = useState<number | null>(null);
     const [boundProductId, setBoundProductId] = useState(productId);
 
     if (productId !== boundProductId) {
         setBoundProductId(productId);
-        setSelectedShopVariantId(null);
+        setPickedByAttr({});
+        setPlainVariantId(null);
     }
 
     const hasAttributeMatrix = attributesMap.length > 0;
 
-    const selectedVariant = useMemo(() => {
-        if (shopVariants.length === 0) return null;
-        return (
-            findVariantById(shopVariants, selectedShopVariantId) ??
-            defaultVariant(shopVariants, hasAttributeMatrix) ??
-            null
-        );
-    }, [shopVariants, selectedShopVariantId, hasAttributeMatrix]);
-
     useEffect(() => {
-        if (shopVariants.length === 0) {
-            setSelectedShopVariantId((id) => (id == null ? id : null));
+        if (hasAttributeMatrix) {
+            setPlainVariantId((id) => (id == null ? id : null));
             return;
         }
-
+        if (shopVariants.length === 0) {
+            setPlainVariantId((id) => (id == null ? id : null));
+            return;
+        }
         const stillThere =
-            selectedShopVariantId != null &&
-            shopVariants.some((variant) => variant.id === selectedShopVariantId);
+            plainVariantId != null &&
+            shopVariants.some((variant) => variant.id === plainVariantId);
         if (stillThere) return;
 
-        const nextId = defaultVariant(shopVariants, hasAttributeMatrix)?.id ?? null;
-        setSelectedShopVariantId((id) => (id === nextId ? id : nextId));
-    }, [shopVariants, selectedShopVariantId, hasAttributeMatrix]);
+        const nextId = defaultPlainVariant(shopVariants)?.id ?? null;
+        setPlainVariantId((id) => (id === nextId ? id : nextId));
+    }, [hasAttributeMatrix, shopVariants, plainVariantId]);
 
-    const selectedAttributes = useMemo(
-        () => attributesFromVariant(selectedVariant),
-        [selectedVariant],
-    );
+    const isSelectionComplete = useMemo(() => {
+        if (!hasAttributeMatrix) return true;
+        return attributesMap.every((attr) => {
+            const id = pickedByAttr[attr.attribute];
+            return id != null && Number.isFinite(id);
+        });
+    }, [hasAttributeMatrix, attributesMap, pickedByAttr]);
 
-    const selectedIds = useMemo(
-        () => selectedIdsFromVariant(selectedVariant),
-        [selectedVariant],
-    );
+    const selectedAttributes = useMemo((): SelectedAttributes => {
+        if (!hasAttributeMatrix) {
+            return attributesFromVariant(
+                findVariantById(shopVariants, plainVariantId) ?? null,
+            );
+        }
+        return attributesFromPicks(pickedByAttr, attributesMap, shopVariants);
+    }, [
+        hasAttributeMatrix,
+        shopVariants,
+        plainVariantId,
+        pickedByAttr,
+        attributesMap,
+    ]);
+
+    const selectedIds = useMemo(() => {
+        if (!hasAttributeMatrix) {
+            return selectedIdsFromVariant(
+                findVariantById(shopVariants, plainVariantId) ?? null,
+            );
+        }
+        return idsFromPicks(pickedByAttr);
+    }, [hasAttributeMatrix, shopVariants, plainVariantId, pickedByAttr]);
+
+    const selectedVariant = useMemo((): ShopVariant | null => {
+        if (shopVariants.length === 0) return null;
+
+        if (!hasAttributeMatrix) {
+            return (
+                findVariantById(shopVariants, plainVariantId) ??
+                defaultPlainVariant(shopVariants) ??
+                null
+            );
+        }
+
+        // Incomplete colour/size picks → no variant (product gallery + blocked cart).
+        if (!isSelectionComplete) return null;
+
+        return resolvePickedVariant(
+            shopVariants,
+            pickedByAttr,
+            selectedAttributes,
+        );
+    }, [
+        shopVariants,
+        hasAttributeMatrix,
+        plainVariantId,
+        isSelectionComplete,
+        pickedByAttr,
+        selectedAttributes,
+    ]);
 
     const setAttributeOption = useCallback(
         (attr: AttributeMapItem, optionId: number) => {
+            if (!hasAttributeMatrix) return;
             const options = resolveAttributeOptions(attr, shopVariants);
             const option = options.find((o) => o.id === optionId);
             if (!option) return;
 
-            const axisIds = new Set(
-                options.map((o) => o.id).filter((id) => id > 0),
+            setPickedByAttr((prev) =>
+                reconcilePicks(shopVariants, prev, attr.attribute, optionId),
             );
-            const currentIds = selectedIdsFromVariant(selectedVariant);
-            const nextIds = [
-                ...currentIds.filter((id) => !axisIds.has(id)),
-                ...(optionId > 0 ? [optionId] : []),
-            ];
-
-            // Keep the other axes when that combo exists (أزرق + S).
-            // Otherwise pick the first row with the new value (أسود → L).
-            const match =
-                (nextIds.length
-                    ? findShopVariant(shopVariants, nextIds)
-                    : null) ??
-                findShopVariantWithOptionId(shopVariants, optionId) ??
-                findShopVariantByNames(shopVariants, {
-                    ...attributesFromVariant(selectedVariant),
-                    [attr.attribute]: option.name,
-                }) ??
-                findShopVariantWithValue(
-                    shopVariants,
-                    attr.attribute,
-                    option.name,
-                );
-            if (!match) return;
-            setSelectedShopVariantId(match.id ?? null);
         },
-        [shopVariants, selectedVariant],
+        [hasAttributeMatrix, shopVariants],
     );
 
     const hexById = useMemo(
@@ -296,11 +375,12 @@ export function useVariantSelector({
         selectedIds,
         setAttributeOption,
         selectedVariant,
-        selectedShopVariantId,
+        selectedShopVariantId: selectedVariant?.id ?? null,
         currentPrice,
         currentPriceAfterDiscount,
         currentImages,
         currentQuantity,
+        isSelectionComplete,
         isVariantSelected,
         availableAttributes,
     };

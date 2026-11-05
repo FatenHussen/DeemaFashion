@@ -250,6 +250,7 @@ function ProductDetails() {
         currentImages,
         selectedVariant,
         availableAttributes,
+        isSelectionComplete,
     } = useVariantSelector({
         productId: productIdNum,
         attributesMap: product?.attributes_map ?? EMPTY_ATTRIBUTES_MAP,
@@ -329,10 +330,17 @@ function ProductDetails() {
     /**
      * `shop_variants` may hold the API's fallback entry (`id`/`shop_id` null),
      * which renders fine but has no `shop_product_variant_id` for the cart.
+     * Products with `attributes_map` start with no selected variant — the
+     * shopper must finish colour/size before cart accepts a row.
      */
     const productVariants = product?.shop_variants ?? [];
+    const hasAttributeMatrix = (product?.attributes_map?.length ?? 0) > 0;
     const hasPurchasableVariant = productVariants.some(isPurchasableVariant);
+    const needsVariantSelection =
+        hasAttributeMatrix && !isSelectionComplete;
     const canAddToCart = isPurchasableVariant(selectedVariant);
+    /** Incomplete picks stay clickable so we can toast «يجب اختيار المتغيرات». */
+    const addToCartDisabled = !canAddToCart && !needsVariantSelection;
     const warrantyName = product
         ? warrantyTitle(product, (months) =>
               t("product.warrantyMonths", { count: months }),
@@ -341,8 +349,8 @@ function ProductDetails() {
     const warrantyDescription = product ? warrantyBody(product) : null;
     const cannotAddToCartReason = !hasPurchasableVariant
         ? t("product.unavailable", "Currently unavailable")
-        : selectedVariant == null
-          ? t("product.selectVariant", "Select a variant")
+        : needsVariantSelection || selectedVariant == null
+          ? t("product.selectVariant", "Please select the variants")
           : t("product.outOfStock", "Out of stock");
 
     /** Bound to the selected shop variant via `galleryFor` (`has_variant_images` + `images[].path`). */
@@ -556,7 +564,7 @@ function ProductDetails() {
 
     const handleAddToCart = () => {
         if (!product) return;
-        if (!isPurchasableVariant(selectedVariant)) {
+        if (needsVariantSelection || !isPurchasableVariant(selectedVariant)) {
             toast.error(cannotAddToCartReason);
             return;
         }
@@ -868,6 +876,12 @@ function ProductDetails() {
                     <div className="flex min-w-0 flex-col gap-5">
                         <ProductInfo
                             category={product.category?.name}
+                            brand={product.brand?.name?.trim() || undefined}
+                            brandHref={
+                                product.brand?.id
+                                    ? paths.client.brandDetails(product.brand.id)
+                                    : undefined
+                            }
                             name={product.name}
                             sku={
                                 selectedVariant?.sku?.trim() ||
@@ -991,10 +1005,10 @@ function ProductDetails() {
                                 max={maxOrderQuantity}
                                 onQuantityChange={setQuantity}
                                 onAddToCart={handleAddToCart}
-                                addToCartDisabled={!canAddToCart}
+                                addToCartDisabled={addToCartDisabled}
                                 addToCartClassName="hidden lg:inline-flex"
                                 addToCartText={
-                                    canAddToCart
+                                    canAddToCart || needsVariantSelection
                                         ? t("product.addToCart", "Add To Cart")
                                         : t(
                                               "product.unavailable",
@@ -1487,11 +1501,11 @@ function ProductDetails() {
                         <button
                             type="button"
                             onClick={handleAddToCart}
-                            disabled={!canAddToCart}
+                            disabled={addToCartDisabled}
                             className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <HiShoppingCart className="h-4 w-4" aria-hidden />
-                            {canAddToCart
+                            {canAddToCart || needsVariantSelection
                                 ? t("product.addToCart", "Add To Cart")
                                 : t("product.unavailable", "Currently unavailable")}
                         </button>

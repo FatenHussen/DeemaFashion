@@ -14,6 +14,12 @@ export interface ProductCategory {
  name: string;
 }
 
+/** Nested brand on product details / listing. `null` when the product has none. */
+export interface ProductBrandRef {
+ id: number;
+ name: string;
+}
+
 /** `attributes_map[].options[]` — identity is `id`; `name` / `hex` come from the last GET. */
 export interface AttributeMapOption {
  id: number;
@@ -356,6 +362,8 @@ export interface ProductDetailsData {
  product_type?: string;
  extras?: ProductExtra[];
  category: ProductCategory;
+ /** Always present from the API; `null` when the product is not linked to a brand. */
+ brand?: ProductBrandRef | null;
  attributes_map: AttributeMapItem[];
  shop_variants: ShopVariant[];
  category_details: CategoryDetail[];

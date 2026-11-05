@@ -457,7 +457,7 @@
     "quickViewBadge": "Quick view",
     "quickViewLoadingHint": "Fetching photos, prices & variants…",
     "selectOneVariant": "Choose one option to add to cart",
-    "selectVariant": "Select a variant",
+    "selectVariant": "Please select the variants",
     "insufficientStock": "Not enough stock for this quantity.",
     "outOfStock": "Out of stock",
     "unavailable": "Currently unavailable",

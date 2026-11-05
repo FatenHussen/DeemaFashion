@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/utils";
 import Rating from "@/shared/component/Rating";
@@ -15,6 +16,8 @@ export type ProductInfoBadge = {
 export type ProductInfoProps = {
     category?: string;
     brand?: string;
+    /** When set, brand name links to the brand products page. */
+    brandHref?: string;
     name: string;
     sku?: string;
     barcode?: string;
@@ -32,6 +35,7 @@ export type ProductInfoProps = {
 export default function ProductInfo({
     category,
     brand,
+    brandHref,
     name,
     sku,
     barcode,
@@ -68,7 +72,18 @@ export default function ProductInfo({
                                 /
                             </span>
                         )}
-                        {brand && <span>{brand}</span>}
+                        {brand ? (
+                            brandHref ? (
+                                <Link
+                                    to={brandHref}
+                                    className="font-medium text-text-primary underline-offset-2 hover:text-primary hover:underline"
+                                >
+                                    {brand}
+                                </Link>
+                            ) : (
+                                <span>{brand}</span>
+                            )
+                        ) : null}
                     </div>
                     {topRightSlot && <div className="shrink-0">{topRightSlot}</div>}
                 </div>

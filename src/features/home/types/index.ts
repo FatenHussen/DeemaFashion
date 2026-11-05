@@ -62,9 +62,16 @@ export interface RecipeItem {
 }
 
 // Product Item (display_type_id: 2)
+export interface ProductBrandRef {
+ id: number;
+ name: string;
+}
+
 export interface ProductItem {
  id: number;
  category: string;
+ /** Present on list rows when the product is linked to a brand; otherwise `null`. */
+ brand?: ProductBrandRef | null;
  name: string;
  description: string;
  country: string | null;
