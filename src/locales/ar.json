@@ -632,7 +632,7 @@
     "instantDelivery": "توصيل فوري",
     "deliveryInMinutes": "{{count}} دقيقة",
     "deliveryTimeAfterConfirm": "يتحدد بعد تأكيد الطلب",
-    "deliveryMethod": "طريقة التوصيل",
+    "deliveryMethod": "وقت التوصيل",
     "deliveryAsap": "أقرب وقت ممكن",
     "deliveryScheduled": "يوم ووقت",
     "deliveryTooEarly": "اختر وقتاً في {{time}} أو بعده",

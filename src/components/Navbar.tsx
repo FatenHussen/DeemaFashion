@@ -950,15 +950,6 @@ export default function Navbar() {
                                 )}
                             </div>
 
-                            {/* Search Bar - Mobile */}
-                            <div className="p-4 border-b border-custom-primary">
-                                <NavbarSearch
-                                    onResultSelect={() =>
-                                        setIsMobileMenuOpen(false)
-                                    }
-                                />
-                            </div>
-
                             {/* Navigation Items */}
                             <div className="flex-1 overflow-y-auto py-2">
                                 <div className="px-2">

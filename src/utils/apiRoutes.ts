@@ -118,6 +118,7 @@ export const apiRoutes = {
     */
     cart: {
         get: "/user/cart" as const,
+        clear: "/user/cart" as const,
         items: "/user/cart/items" as const,
         item: (id: number | string) => `/user/cart/items/${id}` as const,
     },

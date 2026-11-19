@@ -3,6 +3,8 @@ export type CartExtraLine = { id: number; quantity: number };
 
 export type CartItem = {
  id: number | string;
+ /** Server cart line id from `GET /user/cart` — used for PUT/DELETE `/user/cart/items/{id}`. */
+ serverItemId?: number;
  name: string;
  description?: string;
  category?: string; // e.g.,"Shoes"

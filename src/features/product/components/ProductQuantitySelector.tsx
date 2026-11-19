@@ -34,7 +34,7 @@ export default function ProductQuantitySelector({
     };
 
     return (
-        <div className={cn("flex w-full flex-col gap-3 sm:flex-row sm:items-center", className)}>
+        <div className={cn("flex w-full min-w-0 items-center gap-3", className)}>
             <div
                 className={cn(
                     "inline-flex h-12 shrink-0 items-center rounded-xl border",
@@ -71,8 +71,8 @@ export default function ProductQuantitySelector({
                     onClick={onAddToCart}
                     disabled={addToCartDisabled}
                     className={cn(
-                        "inline-flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-6",
-                        "text-base font-semibold text-white",
+                        "inline-flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 sm:px-6",
+                        "text-sm font-semibold text-white sm:text-base",
                         "transition-[background-color,transform] duration-200",
                         "hover:bg-[var(--color-primary-dark)]",
                         "active:scale-[0.99] focus:outline-none focus-visible:ring-2",
@@ -82,7 +82,7 @@ export default function ProductQuantitySelector({
                     )}
                 >
                     <HiShoppingCart className="h-5 w-5 shrink-0" aria-hidden />
-                    {addToCartText}
+                    <span className="truncate">{addToCartText}</span>
                 </button>
             )}
         </div>

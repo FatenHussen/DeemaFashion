@@ -73,6 +73,17 @@ interface CartStore {
  removeItem: (id: number | string) => void;
  updateQuantity: (id: number | string, quantity: number) => void;
  clearCart: () => void;
+ /** Replace the whole cart (e.g. hydrate from `GET /user/cart`). */
+ replaceItems: (
+ items: CartItem[],
+ meta?: {
+ cart_type?: CartType;
+ recipe_id?: number;
+ admin_basket_id?: number;
+ admin_schedule_basket_id?: number;
+ basket_schedule_id?: number;
+ }
+ ) => void;
  getItems: () => CartItem[];
  getPreviewItems: () => OrderPreviewItem[];
 }
@@ -254,6 +265,16 @@ export const useCartStore = create<CartStore>()(
  admin_basket_id: undefined,
  admin_schedule_basket_id: undefined,
  basket_schedule_id: undefined,
+ }),
+
+ replaceItems: (items, meta) =>
+ set({
+ items: [...items],
+ cart_type: meta?.cart_type ??"default",
+ recipe_id: meta?.recipe_id,
+ admin_basket_id: meta?.admin_basket_id,
+ admin_schedule_basket_id: meta?.admin_schedule_basket_id,
+ basket_schedule_id: meta?.basket_schedule_id,
  }),
 
  getItems: () => get().items,

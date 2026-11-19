@@ -113,7 +113,7 @@ export function getSectionRowProps(
 export function getSectionGridClassName(variant: SectionCardVariant): string {
     switch (variant) {
         case "horizontal":
-            return "grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6";
+            return "grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6";
         case "vertical":
             return "grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-4";
         case "square":
@@ -136,13 +136,12 @@ export function getSectionCardSurfaceColor(section: Section): string | null {
 function sliderPresetForCardVariant(v: SectionCardVariant): SectionSliderPreset {
     switch (v) {
         case "horizontal":
-            // Wide/landscape cards: one full card on the smallest phones, a peek of the
-            // second from 480px up so the row reads as scrollable on mobile.
+            // Show ~2 cards on phones so product rows feel dense instead of full-bleed.
             return {
-                slidesPerView: 1,
+                slidesPerView: 1.65,
                 breakpoints: {
-                    480: { slidesPerView: 1.15 },
-                    640: { slidesPerView: 2 },
+                    480: { slidesPerView: 2.1 },
+                    640: { slidesPerView: 2.5 },
                     768: { slidesPerView: 3 },
                     1024: { slidesPerView: 3 },
                 },

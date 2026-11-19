@@ -40,6 +40,11 @@ import {
 import { ScreenPromotions } from "@/features/promotions";
 import { useCartCheckout } from "../hooks/useCartCheckout";
 import { checkoutBlockMessage } from "../lib/cartCheckout";
+import {
+    clearServerCartSafe,
+    syncQuantityToServer,
+    syncRemoveToServer,
+} from "../api/cartApi";
 
 function parseSubtotal(s: string): number {
     return parseFloat(String(s).replace(/[^0-9.]/g, "")) || 0;
@@ -236,10 +241,14 @@ export default function Cart() {
                         : "ready";
 
     const handleQuantityChange = (itemId: number | string, quantity: number) => {
+        const item = useCartStore.getState().items.find((i) => i.id === itemId);
         updateQuantity(itemId, quantity);
+        if (item) syncQuantityToServer(item, quantity);
     };
 
     const handleRemoveItem = (itemId: number | string) => {
+        const item = useCartStore.getState().items.find((i) => i.id === itemId);
+        if (item) syncRemoveToServer(item);
         removeItem(itemId);
     };
 
@@ -248,6 +257,7 @@ export default function Cart() {
     };
 
     const handleConfirmClearCart = () => {
+        clearServerCartSafe(items);
         clearCart();
         setShowClearCartPopup(false);
         toast.success(t("cart.cartCleared", "Cart cleared"));

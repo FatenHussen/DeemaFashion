@@ -42,7 +42,7 @@ export default function InfoCards() {
             <div className="page-container min-w-0">
                 <div
                     className={cn(
-                        "space-y-6 pt-2 pb-4 sm:pb-5",
+                        "space-y-3 py-3 sm:py-4",
                         HOME_INFO_CARDS_SCOPE_CLASS,
                     )}
                     dir={isRTL ? "rtl" : "ltr"}

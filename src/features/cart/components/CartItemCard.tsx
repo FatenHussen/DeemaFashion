@@ -52,20 +52,27 @@ export default function CartItemCard({
         (item.shop_product_variant_id != null
             ? previewPrices?.get(item.shop_product_variant_id)
             : undefined);
-    const displayPrice = preview ? formatPrice(preview.price) : item.price;
-    const displayOriginalPrice =
+    const priceNum = preview?.price ?? (item.priceNumeric ?? toNum(item.price));
+    const priceBeforeNum =
         preview?.priceBeforeDiscount != null &&
         preview.priceBeforeDiscount > (preview.price ?? 0)
-            ? formatPrice(preview.priceBeforeDiscount)
-            : item.originalPrice;
-    const priceNum = preview?.price ?? (item.priceNumeric ?? toNum(item.price));
-    const priceBeforeNum = preview?.priceBeforeDiscount;
-    const originalSubtotal =
-        priceBeforeNum != null ? priceBeforeNum * item.quantity : undefined;
+            ? preview.priceBeforeDiscount
+            : item.originalPrice
+              ? toNum(item.originalPrice)
+              : undefined;
+    const hasUnitDiscount =
+        priceBeforeNum != null && priceBeforeNum > priceNum;
+    const unitPrice = formatPrice(priceNum);
+    const lineTotal = priceNum * item.quantity;
+    const lineOriginal =
+        hasUnitDiscount && priceBeforeNum != null
+            ? priceBeforeNum * item.quantity
+            : undefined;
     const savedAmount =
-        originalSubtotal != null
-            ? originalSubtotal - priceNum * item.quantity
-            : 0;
+        lineOriginal != null ? lineOriginal - lineTotal : 0;
+    const displayLineTotal = formatPrice(lineTotal);
+    const displayLineOriginal =
+        lineOriginal != null ? formatPrice(lineOriginal) : undefined;
     const variantText = displayVariant?.length
         ? displayVariant.join(" · ")
         : item.selectedAttributes && Object.keys(item.selectedAttributes).length > 0
@@ -208,8 +215,8 @@ export default function CartItemCard({
 
                         <div className="text-end">
                             <PriceBlock
-                                price={displayPrice}
-                                originalPrice={displayOriginalPrice}
+                                price={displayLineTotal}
+                                originalPrice={displayLineOriginal}
                                 savings={
                                     savedAmount > 0
                                         ? `${t("cart.youSave", "You save")} ${formatPrice(savedAmount)}`
@@ -218,7 +225,8 @@ export default function CartItemCard({
                                 size="sm"
                                 align="end"
                             />
-                            <p className="mt-0.5 text-[11px] text-custom-secondary">
+                            <p className="mt-0.5 text-[11px] text-custom-secondary tabular-nums">
+                                {unitPrice}{" "}
                                 {t("cart.each", "each")}
                             </p>
                             {extrasTotal && (

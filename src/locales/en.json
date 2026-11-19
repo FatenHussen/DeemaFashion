@@ -632,7 +632,7 @@
     "instantDelivery": "Instant delivery",
     "deliveryInMinutes": "{{count}} min",
     "deliveryTimeAfterConfirm": "Confirmed after you place the order",
-    "deliveryMethod": "Delivery method",
+    "deliveryMethod": "Delivery time",
     "deliveryAsap": "As soon as possible",
     "deliveryScheduled": "Day and time",
     "deliveryTooEarly": "Choose a time at or after {{time}}",

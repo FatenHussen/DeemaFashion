@@ -77,7 +77,7 @@ import {
     mapApiTopBadgesToProductCard,
 } from "@/shared/lib/mapProductBadges";
 import { cn } from "@/shared/lib/utils";
-import { HiEye, HiShoppingCart } from "react-icons/hi";
+import { HiEye } from "react-icons/hi";
 import {
     HiChevronRight,
     HiClock,
@@ -1008,7 +1008,7 @@ function ProductDetails() {
                                 </div>
                             )}
 
-                        <div className="flex flex-col gap-2 border-t border-black/6 pt-4 dark:border-white/8">
+                        <div className="hidden flex-col gap-2 border-t border-black/6 pt-4 lg:flex dark:border-white/8">
                             <ProductQuantitySelector
                                 quantity={quantity}
                                 min={1}
@@ -1016,7 +1016,6 @@ function ProductDetails() {
                                 onQuantityChange={setQuantity}
                                 onAddToCart={handleAddToCart}
                                 addToCartDisabled={addToCartDisabled}
-                                addToCartClassName="hidden lg:inline-flex"
                                 addToCartText={
                                     canAddToCart || needsVariantSelection
                                         ? t("product.addToCart", "Add To Cart")
@@ -1298,26 +1297,25 @@ function ProductDetails() {
                         !isBoughtWithPreviewLoading &&
                         !isBoughtWithPreviewError ? (
                             <div className="flex w-full flex-col gap-2">
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    fullWidth
-                                    leftIcon={
-                                        <HiShoppingCart
-                                            className="h-5 w-5 shrink-0"
-                                            aria-hidden
-                                        />
-                                    }
-                                    disabled={
+                                <ProductQuantitySelector
+                                    quantity={previewQuantity}
+                                    min={1}
+                                    max={variantOrderLimit(
+                                        previewSelectedVariant,
+                                        boughtWithPreview.max_purchase_quantity,
+                                    )}
+                                    onQuantityChange={setPreviewQuantity}
+                                    onAddToCart={handleAddPreviewToCart}
+                                    addToCartDisabled={
                                         !isPurchasableVariant(
                                             previewSelectedVariant
                                         ) || previewQuantity < 1
                                     }
-                                    className="cursor-pointer rounded-xl border border-primary/20 bg-primary shadow-md shadow-[0_8px_28px_-6px_var(--color-shadow-accent)] !opacity-100 transition duration-200 hover:!border-primary/30 hover:!bg-[var(--color-primary-dark)] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-                                    onClick={handleAddPreviewToCart}
-                                >
-                                    {t("product.addToCart", "Add To Cart")}
-                                </Button>
+                                    addToCartText={t(
+                                        "product.addToCart",
+                                        "Add To Cart",
+                                    )}
+                                />
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -1445,20 +1443,6 @@ function ProductDetails() {
                                             className="rounded-2xl border border-primary/20 bg-[color-mix(in_srgb,var(--color-api-second)_8%,var(--color-bg-card))] p-4 dark:border-[rgba(255,255,255,0.06)] dark:bg-[rgba(16,17,20,0.75)]"
                                         />
                                     )}
-                                    <div className="rounded-xl border border-custom-primary/20 bg-custom-secondary/30 px-3 py-2 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#0B0B0C]">
-                                        <p className="mb-2 text-xs font-medium text-custom-secondary dark:text-[#A1A1AA]">
-                                            {t("product.quantity", "Quantity")}
-                                        </p>
-                                        <ProductQuantitySelector
-                                            quantity={previewQuantity}
-                                            min={1}
-                                            max={variantOrderLimit(
-                                                previewSelectedVariant,
-                                                boughtWithPreview.max_purchase_quantity,
-                                            )}
-                                            onQuantityChange={setPreviewQuantity}
-                                        />
-                                    </div>
                                 </>
                             )}
                         </div>
@@ -1504,22 +1488,31 @@ function ProductDetails() {
                     className="fixed inset-x-0 bottom-0 z-40 border-t border-black/8 bg-custom-card/95 px-4 py-3 backdrop-blur-md lg:hidden dark:border-white/10"
                     style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
                 >
-                    <div className="flex items-center gap-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
                         <p className="min-w-0 truncate text-base font-semibold tabular-nums text-text-primary">
                             {displaySalePrice}
                         </p>
-                        <button
-                            type="button"
-                            onClick={handleAddToCart}
-                            disabled={addToCartDisabled}
-                            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <HiShoppingCart className="h-4 w-4" aria-hidden />
-                            {canAddToCart || needsVariantSelection
-                                ? t("product.addToCart", "Add To Cart")
-                                : t("product.unavailable", "Currently unavailable")}
-                        </button>
+                        {canAddToCart && selectedVariant?.quantity != null ? (
+                            <p className="shrink-0 text-xs text-custom-secondary">
+                                {t("product.inStockCount", {
+                                    count: selectedVariant.quantity,
+                                })}
+                            </p>
+                        ) : null}
                     </div>
+                    <ProductQuantitySelector
+                        quantity={quantity}
+                        min={1}
+                        max={maxOrderQuantity}
+                        onQuantityChange={setQuantity}
+                        onAddToCart={handleAddToCart}
+                        addToCartDisabled={addToCartDisabled}
+                        addToCartText={
+                            canAddToCart || needsVariantSelection
+                                ? t("product.addToCart", "Add To Cart")
+                                : t("product.unavailable", "Currently unavailable")
+                        }
+                    />
                 </div>
             </div>
     );
