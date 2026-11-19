@@ -39,9 +39,11 @@ import {
     resolveSelectablePaymentMethodId,
 } from "../utils/paymentMethods";
 import DeliveryChoiceSection from "../components/DeliveryChoiceSection";
+import CartCheckoutLines from "../components/CartCheckoutLines";
 import { useCartCheckout } from "../hooks/useCartCheckout";
 import {
     checkoutBlockMessage,
+    formatDeliveryDurationLabel,
     isBeforeEarliest,
     isMinimumOrderBlock,
 } from "../lib/cartCheckout";
@@ -81,7 +83,7 @@ export default function Checkout() {
     const { t, i18n } = useTranslation();
     const { isRTL } = useLanguage();
     const navigate = useNavigate();
-    const { formatPrice } = useCurrency();
+    const { formatPrice, currency } = useCurrency();
     const { data: addressesData = [] } = useAddresses();
     const cartItems = useCartStore((s) => s.items);
 
@@ -170,12 +172,18 @@ export default function Checkout() {
     );
     const checkoutSummary = useMemo<CheckoutOrderSummaryType>(() => {
         if (preview) {
-            return mapPreviewToCheckoutSummary(preview, displayItems, formatPrice, {
-                language: i18n.language,
-                discountLabel: t("cart.promotionDiscount"),
-                freeShippingLabel: t("cart.automaticFreeShipping"),
-                freeShippingValue: t("cart.freeDelivery"),
-            });
+            return mapPreviewToCheckoutSummary(
+                preview,
+                displayItems,
+                formatPrice,
+                {
+                    language: i18n.language,
+                    discountLabel: t("cart.promotionDiscount"),
+                    freeShippingLabel: t("cart.automaticFreeShipping"),
+                    freeShippingValue: t("cart.freeDelivery"),
+                },
+                currency,
+            );
         }
         return {
             items: displayItems,
@@ -186,7 +194,7 @@ export default function Checkout() {
             couponDiscount: formatPrice(0),
             total: formatPrice(0),
         };
-    }, [displayItems, formatPrice, i18n.language, preview, t]);
+    }, [currency, displayItems, formatPrice, i18n.language, preview, t]);
 
     const selectedPaymentMethod =
         paymentMethods.find(
@@ -253,6 +261,11 @@ export default function Checkout() {
     const checkout = preview?.checkout ?? serverCheckout ?? null;
     const instantOnly = checkout?.instant_only === true;
     const blockedByMinimum = isMinimumOrderBlock(checkout);
+    const deliveryWindowLabel = formatDeliveryDurationLabel(
+        checkout?.delivery_min_hours,
+        checkout?.delivery_max_hours,
+        t,
+    );
     const scheduledTooEarly =
         !instantOnly &&
         deliveryChoice === "scheduled" &&
@@ -323,6 +336,7 @@ export default function Checkout() {
                     <h1 className="text-xl font-bold text-[color:var(--color-text)]">
                         {t("checkout.paymentStep", "Payment")}
                     </h1>
+                    {checkout && <CartCheckoutLines checkout={checkout} />}
                     {!showAddAddressForm ? (
                         <CheckoutAddressSection
                             addresses={checkoutAddresses}
@@ -350,6 +364,7 @@ export default function Checkout() {
                             scheduledDeliveryAt={scheduledDeliveryAt}
                             earliestDeliveryAt={checkout?.earliest_delivery_at ?? ""}
                             instantOnly={instantOnly}
+                            deliveryWindowLabel={deliveryWindowLabel}
                             onChoiceChange={setDeliveryChoice}
                             onScheduledChange={setScheduledDeliveryAt}
                         />

@@ -5,7 +5,8 @@ type OrderPriceSummaryProps = {
         shipping: string;
         shippingIsFree: boolean;
         storeDiscounts: string;
-        tax: string;
+        tax?: string;
+        taxRate?: string;
         couponDiscount: string;
         total: string;
     };
@@ -52,12 +53,16 @@ export default function OrderPriceSummary({
                         {priceSummary.storeDiscounts}
                     </span>
                 </div>
-                {/* <div className="flex items-center justify-between">
-                    <span className="text-custom-secondary">Tax:</span>
-                    <span className="font-medium" style={{ color: "var(--color-green)" }}>
-                        {priceSummary.tax}
-                    </span>
-                </div> */}
+                {priceSummary.tax ? (
+                    <div className="flex items-center justify-between">
+                        <span className="text-custom-secondary">
+                            Tax{priceSummary.taxRate ? ` (${priceSummary.taxRate})` : ""}:
+                        </span>
+                        <span className="font-medium text-custom-primary">
+                            {priceSummary.tax}
+                        </span>
+                    </div>
+                ) : null}
                 <div className="flex items-center justify-between">
                     <span className="text-custom-secondary">Coupon discount:</span>
                     <span className="font-medium text-custom-primary">

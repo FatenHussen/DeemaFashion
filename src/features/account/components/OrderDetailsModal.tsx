@@ -22,6 +22,9 @@ import { flattenOrderDetailItems, formatOrderMoney } from"../utils/parseOrdersRe
 import { getOrderStatusLabel, normalizeOrderStatus } from"@/shared/lib/orderStatus";
 import { orderDeliveryChoiceLabel } from"@/features/cart/utils/formatScheduledDelivery";
 import { buildAutomaticRewardLines } from"@/features/cart/utils/automaticPromotions";
+import { formatCityTaxLabel, resolveCityTaxLine } from"@/features/cart/utils/taxDisplay";
+import { Link } from"react-router-dom";
+import { paths } from"@/app/routes/path/paths";
 
 type OrderDetailsModalProps = {
  orderId: number | string | null;
@@ -170,6 +173,9 @@ export default function OrderDetailsModal({
  const otherRewardLines = rewardLines.filter(
  (line) => !line.id.startsWith("automatic-discount"),
  );
+ const taxLine = order
+ ? resolveCityTaxLine(order, (amount) => money(amount), currency)
+ : undefined;
  const [isSlideReady, setIsSlideReady] = useState(false);
  const [rateModalOpen, setRateModalOpen] = useState(false);
  const [rateModalState, setRateModalState] = useState<{
@@ -374,6 +380,10 @@ export default function OrderDetailsModal({
  {lineItems.map((item) => {
  const productId = item.product_id ?? item.id;
   const variantAttributes = normalizeVariantAttributes(item);
+  const storeLabel = item.shop ?? item.shop_name;
+  const sku = item.sku?.trim();
+  const modelNumber = (item.model_number ?? item.model)?.trim();
+  const availableQty = item.available_quantity ?? item.stock;
  return (
  <div
  key={item.id}
@@ -383,11 +393,49 @@ export default function OrderDetailsModal({
  {item.quantity}
  </div>
  <div className="flex-1 min-w-0">
- <p className="font-medium text-custom-primary">
+ <Link
+ to={paths.client.productDetails(productId)}
+ onClick={onClose}
+ className="text-start font-medium text-custom-primary hover:text-cyan-700 transition-colors"
+ >
  {item.product_name}
- </p>
+ </Link>
+ <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] text-custom-secondary">
+ <span className="rounded-md bg-custom-muted/80 px-1.5 py-0.5 ring-1 ring-[#E6F3F7]">
+ {t("orders.productNumber", "Product #")}{" "}
+ <span className="font-medium text-custom-primary" dir="ltr">
+ {productId}
+ </span>
+ </span>
+ {storeLabel && (
+ <span className="rounded-md bg-custom-muted/80 px-1.5 py-0.5 ring-1 ring-[#E6F3F7]">
+ {t("orders.store", "Store")}: {storeLabel}
+ </span>
+ )}
+ {sku && (
+ <span className="rounded-md bg-custom-muted/80 px-1.5 py-0.5 ring-1 ring-[#E6F3F7]">
+ {t("product.sku", "SKU")}:{" "}
+ <span className="font-mono text-custom-primary" dir="ltr">
+ {sku}
+ </span>
+ </span>
+ )}
+ {modelNumber && (
+ <span className="rounded-md bg-custom-muted/80 px-1.5 py-0.5 ring-1 ring-[#E6F3F7]">
+ {t("orders.modelNumber", "Model")}:{" "}
+ <span className="font-mono text-custom-primary" dir="ltr">
+ {modelNumber}
+ </span>
+ </span>
+ )}
+ {availableQty != null && (
+ <span className="rounded-md bg-custom-muted/80 px-1.5 py-0.5 ring-1 ring-[#E6F3F7]">
+ {t("orders.availableQuantity", "Available")}: {availableQty}
+ </span>
+ )}
+ </div>
  {variantAttributes.length > 0 && (
- <div className="flex flex-wrap gap-2 mt-1">
+ <div className="flex flex-wrap gap-2 mt-2">
  {variantAttributes.map((attr, i) => (
  <span
  key={i}
@@ -398,7 +446,7 @@ export default function OrderDetailsModal({
  ))}
  </div>
  )}
- <p className="text-sm text-custom-secondary mt-1">{t("orders.qty")}: {item.quantity}</p>
+ <p className="text-sm text-custom-secondary mt-1.5">{t("orders.qty")}: {item.quantity}</p>
  {isDelivered && (
  <button
  type="button"
@@ -508,6 +556,14 @@ export default function OrderDetailsModal({
  )}
  </span>
  </div>
+ {taxLine ? (
+ <div className="flex justify-between">
+ <span className="text-custom-secondary">
+ {formatCityTaxLabel(t("cart.tax", "Tax"), taxLine.rateLabel)}
+ </span>
+ <span className="font-medium">{taxLine.amount}</span>
+ </div>
+ ) : null}
  <div className="flex justify-between pt-4 mt-4 border-t border-amber-200">
  <span className="font-semibold text-custom-primary">
  {t("orders.total")}

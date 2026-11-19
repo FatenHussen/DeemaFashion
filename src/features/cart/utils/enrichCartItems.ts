@@ -176,12 +176,18 @@ export function enrichCartItemsWithPreview(
       ? orderItem.variant.join(", ")
       : undefined;
 
+    const previewSku = orderItem?.sku?.trim();
+    const previewModel = (orderItem?.model_number ?? orderItem?.model)?.trim();
+
     return {
       ...item,
       name: orderItem?.product_name ?? item.name,
       image: orderItem?.product_image ?? orderItem?.image ?? item.image,
       store: orderItem?.shop_name ?? item.store,
       size: variantStr ?? item.size,
+      sku: previewSku || item.sku,
+      modelNumber: previewModel || item.modelNumber,
+      productId: orderItem?.product_id ?? item.productId,
       price: displayPrice,
       originalPrice: displayOriginalPrice,
       subtotal: displaySubtotal,

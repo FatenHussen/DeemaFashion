@@ -8,6 +8,7 @@ import Input from "@/shared/ui/Input";
 import FormattedPrice from "@/shared/component/FormattedPrice";
 import { cn } from "@/shared/lib/utils";
 import type { OrderSummary } from "../types";
+import { formatCityTaxLabel } from "../utils/taxDisplay";
 
 type CartSummaryStatus = "loading" | "no-address" | "ready";
 
@@ -204,6 +205,15 @@ export default function CartSummary({
                         }
                         accent={summary.shippingIsFree ? "success" : undefined}
                     />
+                    {summary.tax ? (
+                        <InvoiceRow
+                            label={formatCityTaxLabel(
+                                t("cart.tax", "Tax"),
+                                summary.taxRate,
+                            )}
+                            value={summary.tax}
+                        />
+                    ) : null}
                 </div>
 
                 <div className="flex items-baseline justify-between gap-3 border-t border-custom-primary pt-4">

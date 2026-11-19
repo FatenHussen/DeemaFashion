@@ -419,6 +419,11 @@ function ProductDetails() {
                 : undefined,
             is_instant_delivery: !!boughtWithPreview.is_instant_delivery,
             productId: boughtWithPreview.id,
+            sku:
+                v.sku?.trim() ||
+                boughtWithPreview.sku?.trim() ||
+                undefined,
+            modelNumber: boughtWithPreview.model?.trim() || undefined,
             variantId: v.variant_id ?? undefined,
             shop_product_variant_id: v.id,
             shopId: shopIdForLine ?? undefined,
@@ -604,6 +609,11 @@ function ProductDetails() {
             hasFreeDelivery: isInstant ? true : undefined,
             is_instant_delivery: isInstant,
             productId: product.id,
+            sku:
+                selectedVariant?.sku?.trim() ||
+                product.sku?.trim() ||
+                undefined,
+            modelNumber: product.model?.trim() || undefined,
             variantId: selectedVariant.variant_id ?? undefined,
             shop_product_variant_id: selectedVariant.id,
             shopId: shopIdForLine ?? undefined,

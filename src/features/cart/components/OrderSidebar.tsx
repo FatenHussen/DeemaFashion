@@ -19,7 +19,8 @@ type OrderSidebarProps = {
         shipping: string;
         shippingIsFree: boolean;
         storeDiscounts: string;
-        tax: string;
+        tax?: string;
+        taxRate?: string;
         couponDiscount: string;
         total: string;
     };

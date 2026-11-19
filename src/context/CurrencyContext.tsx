@@ -1,136 +1,149 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from"react";
-import type { ReactNode } from"react";
-import i18next from"i18next";
-import { formatMoneyAmount, presentMoney } from"@/shared/lib/formatApiPrice";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import i18next from "i18next";
+import { formatMoneyAmount, presentMoney } from "@/shared/lib/formatApiPrice";
+import { useAuthStore } from "@/store/auth";
+import {
+  BOOTSTRAP_FALLBACK_CODE,
+  clearExplicitCurrencyPreference,
+  CURRENCY_SYMBOL_FALLBACKS,
+  hasExplicitCurrencyPreference,
+  readExplicitCurrencyPreference,
+  resolveSymbol,
+  writeDisplayCurrency,
+} from "@/shared/lib/displayCurrencyStorage";
 
 export type Currency = string;
 
 interface CurrencyState {
- code: string;
- symbol: string;
+  code: string;
+  symbol: string;
 }
+
+type SetCurrencyOptions = {
+  /**
+   * Account / bootstrap sync — must not override an in-session manual pick
+   * unless the codes differ and we are correcting drift via bootstrap rules.
+   */
+  fromAccount?: boolean;
+  /**
+   * When false, apply admin default (or temporary fallback) without marking
+   * an explicit user preference. Admin default changes then still apply.
+   * Default: true (Settings / user switcher / saved account preference).
+   */
+  asPreference?: boolean;
+};
 
 interface CurrencyContextType {
- currency: Currency;
- currencySymbol: string;
- setCurrency: (
- currency: Currency,
- symbol?: string,
- options?: { fromAccount?: boolean },
- ) => void;
- getCurrencySymbol: () => string;
- formatPrice: (amount: number) => string;
+  currency: Currency;
+  currencySymbol: string;
+  hasUserPreference: boolean;
+  setCurrency: (
+    currency: Currency,
+    symbol?: string,
+    options?: SetCurrencyOptions,
+  ) => void;
+  clearUserPreference: () => void;
+  getCurrencySymbol: () => string;
+  formatPrice: (amount: number) => string;
 }
 
-const CurrencyContext = createContext<CurrencyContextType | undefined>(
- undefined
-);
+const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
-const defaultCurrencySymbols: Record<string, string> = {
- USD:"$",
- EUR:"€",
- GBP:"£",
- SYP:"ل.س",
- AED:"د.إ",
- SAR:"ر.س",
- EGP:"ج.م",
-};
-
-/** Storefront default for guests — no login / settings required. */
-const DEFAULT_CURRENCY: CurrencyState = {
- code: "SYP",
- symbol: defaultCurrencySymbols.SYP,
-};
-
-/** Bump when the guest default changes so old USD localStorage is replaced once. */
-const CURRENCY_DEFAULTS_VERSION = "syp-default-v2";
-const CURRENCY_DEFAULTS_VERSION_KEY = "currencyDefaultsVersion";
-
-function getStoredCurrency(): CurrencyState {
- if (typeof window === "undefined") return DEFAULT_CURRENCY;
- try {
- const version = localStorage.getItem(CURRENCY_DEFAULTS_VERSION_KEY);
- if (version !== CURRENCY_DEFAULTS_VERSION) {
- localStorage.setItem(CURRENCY_DEFAULTS_VERSION_KEY, CURRENCY_DEFAULTS_VERSION);
- return DEFAULT_CURRENCY;
- }
- const storedCode = localStorage.getItem("currency");
- const storedSymbol = localStorage.getItem("currencySymbol");
- if (storedCode && storedSymbol) {
- return { code: storedCode, symbol: storedSymbol };
- }
- if (storedCode && defaultCurrencySymbols[storedCode]) {
- return {
- code: storedCode,
- symbol: defaultCurrencySymbols[storedCode],
- };
- }
- return DEFAULT_CURRENCY;
- } catch {
- return DEFAULT_CURRENCY;
- }
+function getInitialCurrency(): CurrencyState {
+  const preferred = readExplicitCurrencyPreference();
+  if (preferred) return preferred;
+  // No preference yet — temporary until admin `is_default` bootstrap runs.
+  return {
+    code: BOOTSTRAP_FALLBACK_CODE,
+    symbol: CURRENCY_SYMBOL_FALLBACKS[BOOTSTRAP_FALLBACK_CODE],
+  };
 }
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
- const [currencyState, setCurrencyState] = useState<CurrencyState>(
- getStoredCurrency
- );
+  const [currencyState, setCurrencyState] = useState<CurrencyState>(getInitialCurrency);
+  const [hasUserPreference, setHasUserPreference] = useState(
+    hasExplicitCurrencyPreference,
+  );
 
- useEffect(() => {
- localStorage.setItem("currency", currencyState.code);
- localStorage.setItem("currencySymbol", currencyState.symbol);
- }, [currencyState]);
+  useEffect(() => {
+    writeDisplayCurrency(currencyState.code, currencyState.symbol, {
+      asPreference: hasUserPreference,
+    });
+  }, [currencyState, hasUserPreference]);
 
- const pinnedByUser = useRef(false);
+  /**
+   * Blocks stale account refetches from undoing an in-session Settings change.
+   * Cleared on auth token change so a new login can sync.
+   */
+  const pinnedByUser = useRef(false);
+  const authToken = useAuthStore((s) => s.token);
 
- const setCurrency = useCallback((
- newCurrency: Currency,
- symbol?: string,
- options?: { fromAccount?: boolean },
- ) => {
- if (options?.fromAccount && pinnedByUser.current) return;
- if (!options?.fromAccount) pinnedByUser.current = true;
- const resolvedSymbol =
- symbol ?? defaultCurrencySymbols[newCurrency] ?? newCurrency;
- setCurrencyState({ code: newCurrency, symbol: resolvedSymbol });
- }, []);
+  useEffect(() => {
+    pinnedByUser.current = false;
+  }, [authToken]);
 
- const getCurrencySymbol = () => currencyState.symbol;
+  const setCurrency = useCallback(
+    (newCurrency: Currency, symbol?: string, options?: SetCurrencyOptions) => {
+      const asPreference = options?.asPreference !== false;
+      const fromAccount = Boolean(options?.fromAccount);
 
- const formatPrice = (amount: number) => {
- const value =
- amount == null || typeof amount !== "number" || Number.isNaN(amount)
- ? 0
- : amount;
- return presentMoney(
- `${currencyState.symbol}${formatMoneyAmount(value, currencyState.code)}`,
- i18next.resolvedLanguage || i18next.language,
- );
- };
+      if (fromAccount && pinnedByUser.current && asPreference) return;
+      if (!fromAccount && asPreference) pinnedByUser.current = true;
 
- return (
- <CurrencyContext.Provider
- value={{
- currency: currencyState.code,
- currencySymbol: currencyState.symbol,
- setCurrency,
- getCurrencySymbol,
- formatPrice,
- }}
- >
- {children}
- </CurrencyContext.Provider>
- );
+      const resolvedSymbol = resolveSymbol(newCurrency, symbol);
+      if (asPreference) {
+        setHasUserPreference(true);
+      }
+      setCurrencyState({ code: newCurrency, symbol: resolvedSymbol });
+    },
+    [],
+  );
+
+  const clearUserPreference = useCallback(() => {
+    clearExplicitCurrencyPreference();
+    setHasUserPreference(false);
+    pinnedByUser.current = false;
+  }, []);
+
+  const getCurrencySymbol = () => currencyState.symbol;
+
+  const formatPrice = (amount: number) => {
+    const value =
+      amount == null || typeof amount !== "number" || Number.isNaN(amount)
+        ? 0
+        : amount;
+    return presentMoney(
+      `${currencyState.symbol}${formatMoneyAmount(value, currencyState.code)}`,
+      i18next.resolvedLanguage || i18next.language,
+    );
+  };
+
+  return (
+    <CurrencyContext.Provider
+      value={{
+        currency: currencyState.code,
+        currencySymbol: currencyState.symbol,
+        hasUserPreference,
+        setCurrency,
+        clearUserPreference,
+        getCurrencySymbol,
+        formatPrice,
+      }}
+    >
+      {children}
+    </CurrencyContext.Provider>
+  );
 }
 
 export function useCurrency() {
- const context = useContext(CurrencyContext);
- if (context === undefined) {
- throw new Error("useCurrency must be used within a CurrencyProvider");
- }
- return context;
+  const context = useContext(CurrencyContext);
+  if (context === undefined) {
+    throw new Error("useCurrency must be used within a CurrencyProvider");
+  }
+  return context;
 }
 
 export function useCurrencyOptional() {
- return useContext(CurrencyContext);
+  return useContext(CurrencyContext);
 }

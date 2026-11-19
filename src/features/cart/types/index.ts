@@ -23,6 +23,10 @@ export type CartItem = {
  hasFreeDelivery?: boolean;
  /** For API: product id from product details */
  productId?: number;
+ /** SKU when the API / PDP provides one */
+ sku?: string;
+ /** Model number when the API / PDP provides one */
+ modelNumber?: string;
  /** For API: variant id when product has variants */
  variantId?: number;
  /** For API: shop id (same as storeId but typed for API) */
@@ -293,6 +297,7 @@ export interface OrderPreviewItemPrice {
 /** Order item from preview API (`orderItems` or `order_items`) */
 export interface OrderPreviewOrderItem {
  shop_product_variant_id: number;
+ product_id?: number;
  product_name?: string;
  product_image?: string;
  quantity: number;
@@ -308,6 +313,11 @@ export interface OrderPreviewOrderItem {
  variant?: string[];
  image?: string;
  shop_name?: string;
+ sku?: string | null;
+ model_number?: string | null;
+ model?: string | null;
+ available_quantity?: number | null;
+ stock?: number | null;
  extras?: number[] | CartExtraLine[];
  note?: string;
 }
@@ -393,6 +403,15 @@ export interface OrderPreviewResponse {
  delivery_choice_label?: string | null;
  scheduled_delivery_at?: string | null;
  delivery_error?: string | null;
+ /** Alias of `tax_amount` on some API versions. */
+ tax?: number | string;
+ tax_amount?: number | string;
+ tax_amount_formatted?: string | null;
+ tax_formatted?: string | null;
+ tax_amount_currencies?: import("@/shared/lib/formatApiPrice").ApiDualCurrencies | null;
+ tax_type?: string | null;
+ tax_value?: number | string | null;
+ tax_rate?: string | number;
 }
 
 export type StoreInfo = {
@@ -425,7 +444,10 @@ export type OrderSummary = {
  shippingIsFree: boolean;
  storeDiscounts: string;
  basketDiscount?: string;
- tax: string;
+ /** City tax amount from preview. Omitted when missing or 0. */
+ tax?: string;
+ /** Percent label such as `10%`. Omitted for fixed city tax. */
+ taxRate?: string;
  couponDiscount: string;
  subscriptionDiscount?: string;
  promotionDiscount?: string;
@@ -520,7 +542,8 @@ export type OrderDetails = {
  shipping: string;
  shippingIsFree: boolean;
  storeDiscounts: string;
- tax: string;
+ tax?: string;
+ taxRate?: string;
  couponDiscount: string;
  total: string;
  };
@@ -578,6 +601,11 @@ export type CheckoutOrderSummary = {
  promotionDiscount?: string;
  rewardLines?: SummaryRewardLine[];
  productDiscount?: string;
+ /** City tax amount from preview. Omitted when missing or 0. */
+ tax?: string;
+ /** Percent label such as `10%`. Omitted for fixed city tax. */
+ taxRate?: string;
+ pointsUsed?: string;
  total: string;
  numOfItems?: number;
  pointsEarned?: number;

@@ -33,8 +33,8 @@ export interface RegisterPayload {
  phone: string;
  email?: string;
  password: string;
- city_id: number;
- governorate_id: number;
+ city_id?: number;
+ governorate_id?: number;
 }
 
 export interface AuthAffiliateInfo {

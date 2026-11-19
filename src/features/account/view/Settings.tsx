@@ -11,12 +11,22 @@ import { paths } from "@/app/routes/path/paths";
 import { useMyCurrency, useUpdateCurrency } from "../hooks/useCurrencies";
 import { _CurrencyApi } from "../api/currency.service";
 import { useInfiniteSelect } from "@/shared/hooks/useInfiniteSelect";
-import type { CurrencyItem } from "../types";
+import type { CurrencyItem, CurrencyLocalizedName } from "../types";
 
 type ThemeOption = "light" | "dark" | "system";
 
+function currencyLabelName(
+    name: CurrencyLocalizedName | undefined,
+    lang: string,
+): string {
+    if (name == null) return "";
+    if (typeof name === "string") return name;
+    const isAr = lang.toLowerCase().startsWith("ar");
+    return (isAr ? name.ar : name.en) || name.en || name.ar || "";
+}
+
 export default function Settings() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { isRTL, language, setLanguage } = useLanguage();
     const { theme, setTheme } = useTheme();
     const { setCurrency } = useCurrency();
@@ -42,7 +52,10 @@ export default function Settings() {
                     } | null) ?? null,
             };
         },
-        mapToOption: (c) => ({ value: c.id, label: `${c.name} (${c.code})` }),
+        mapToOption: (c) => ({
+            value: c.id,
+            label: `${currencyLabelName(c.name, i18n.language)} (${c.code})`,
+        }),
     });
     const { data: myCurrency } = useMyCurrency();
     const updateCurrencyMutation = useUpdateCurrency();

@@ -90,6 +90,13 @@ export interface OrderDetailItem {
  id: number;
  product_id?: number; // optional; when present used for rating
  product_name: string;
+ shop?: string | null;
+ shop_name?: string | null;
+ sku?: string | null;
+ model_number?: string | null;
+ model?: string | null;
+ available_quantity?: number | null;
+ stock?: number | null;
  variant_attributes?: Record<string, string> | OrderDetailVariantAttribute[];
  quantity: number;
  price: number;
@@ -170,6 +177,15 @@ export interface OrderDetailData {
  total: number;
  subtotal: number;
  total_quantity: number;
+ /** City tax snapshot fields (historical orders keep these). */
+ tax?: number | string | null;
+ tax_amount?: number | string | null;
+ tax_amount_formatted?: string | null;
+ tax_formatted?: string | null;
+ tax_amount_currencies?: ApiDualCurrencies | null;
+ tax_type?: string | null;
+ tax_value?: number | string | null;
+ tax_rate?: string | number | null;
  discount_source: string | null;
  basket_discount: number;
  coupon_discount: number | null;

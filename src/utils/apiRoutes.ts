@@ -592,6 +592,7 @@ export const apiRoutes = {
     */
     currencies: {
         list: "/user/currencies" as const,
+        default: "/user/currencies/default" as const,
         myCurrency: "/user/currencies/my-currency" as const,
         updateCurrency: "/user/currencies/update-currency" as const,
     },

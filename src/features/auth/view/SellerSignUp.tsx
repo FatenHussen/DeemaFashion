@@ -444,18 +444,16 @@ export default function SellerSignUp({ role, setRole }: SellerSignUpProps) {
  </div>
  <div className="min-w-0 space-y-1">
  <Label className="block text-sm font-medium text-custom-primary">
- {t("auth.governorate")}
- <span className="text-red-500 dark:text-red-400 ms-0.5">*</span>
+ {t("auth.governorate")}{" "}
+ <span className="text-custom-tertiary font-normal">
+ ({t("common.optional")})
+ </span>
  </Label>
  <div className="relative">
  <select
  className={selectClasses}
  onScroll={handleGovScroll}
- {...register("governorate", {
- required: t("validation.selectGovernorate"),
- validate: (v) =>
- (v !=="" && v !=="0") || t("validation.selectGovernorate"),
- })}
+ {...register("governorate")}
  >
  <option value="">{t("auth.selectGovernorate")}</option>
  {governorateOptions.map((opt) => (
@@ -491,8 +489,10 @@ export default function SellerSignUp({ role, setRole }: SellerSignUpProps) {
  </div>
  <div className="min-w-0 space-y-1 sm:col-span-2 lg:col-span-1">
  <Label className="block text-sm font-medium text-custom-primary">
- {t("auth.storeCity")}
- <span className="text-red-500 dark:text-red-400 ms-0.5">*</span>
+ {t("auth.storeCity")}{" "}
+ <span className="text-custom-tertiary font-normal">
+ ({t("common.optional")})
+ </span>
  </Label>
  <div className="relative">
  <select
@@ -504,11 +504,7 @@ export default function SellerSignUp({ role, setRole }: SellerSignUpProps) {
  isLoadingCities
  }
  onScroll={handleCityScroll}
- {...register("storeCity", {
- required: t("validation.selectCity"),
- validate: (v) =>
- (v !=="" && v !=="0") || t("validation.selectCity"),
- })}
+ {...register("storeCity")}
  >
  <option value="">{t("auth.selectCity")}</option>
  {cityOptions.map((opt) => (

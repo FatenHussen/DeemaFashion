@@ -125,6 +125,38 @@ export function formatCheckoutDeliveryPrice(
     return formatted || null;
 }
 
+/**
+ * Dashboard default delivery duration (`delivery_min_hours` / `delivery_max_hours`).
+ * Prefer this over vague “as soon as possible” copy — customers need a concrete window.
+ */
+export function formatDeliveryDurationLabel(
+    minHours: number | null | undefined,
+    maxHours: number | null | undefined,
+    t: (key: string, defaultValue: string, options?: Record<string, unknown>) => string,
+): string | null {
+    if (minHours == null || maxHours == null) return null;
+    if (minHours === maxHours) {
+        return t("cart.deliveryWindowSame", "{{hours}} hours", { hours: minHours });
+    }
+    return t("cart.deliveryWindow", "{{min}}–{{max}} hours", {
+        min: minHours,
+        max: maxHours,
+    });
+}
+
+/** API sometimes still returns «أقرب وقت ممكن» — treat as missing so we show the duration. */
+export function isVagueAsapDeliveryLabel(label: string | null | undefined): boolean {
+    const value = label?.trim().toLowerCase();
+    if (!value) return true;
+    return (
+        value === "أقرب وقت ممكن" ||
+        value === "as soon as possible" ||
+        value === "asap" ||
+        value === "nearest" ||
+        value === "earliest"
+    );
+}
+
 /** Message to show when checkout is blocked. The API string is shown as returned. */
 export function checkoutBlockMessage(checkout: CartCheckout | null | undefined): string | null {
     if (!checkout || checkout.can_checkout) return null;

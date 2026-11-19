@@ -161,9 +161,19 @@ export function flattenOrderDetailItems(
             return group.filter((item): item is OrderDetailItem => isRecord(item));
         }
         if (isRecord(group) && Array.isArray(group.items)) {
-            return group.items.filter((item): item is OrderDetailItem =>
-                isRecord(item),
-            );
+            const shopLabel =
+                typeof group.shop === "string"
+                    ? group.shop
+                    : typeof group.shop_name === "string"
+                      ? group.shop_name
+                      : undefined;
+            return group.items
+                .filter((item): item is OrderDetailItem => isRecord(item))
+                .map((item) =>
+                    shopLabel && !item.shop && !item.shop_name
+                        ? { ...item, shop: shopLabel }
+                        : item,
+                );
         }
         if (isRecord(group) && (group.product_name != null || group.id != null)) {
             return [group as unknown as OrderDetailItem];

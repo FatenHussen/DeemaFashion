@@ -553,7 +553,8 @@ export interface CreateAddressPayload {
  nearest_landmark: string;
  building_number?: string;
  floor_apartment?: string;
- contact_phone: string;
+ /** Omitted when empty — backend fills from account phone. */
+ contact_phone?: string;
  lat: number;
  lng: number;
  is_default: boolean;
@@ -568,7 +569,8 @@ export interface UpdateAddressPayload {
  nearest_landmark: string;
  building_number?: string;
  floor_apartment?: string;
- contact_phone: string;
+ /** Omitted when empty — keeps the stored phone. */
+ contact_phone?: string;
  lat: number;
  lng: number;
  is_default: boolean;
@@ -677,12 +679,19 @@ export interface GenericApiResponse {
 }
 
 // ==================== Currency API Types ====================
+export type CurrencyLocalizedName =
+ | string
+ | { ar?: string | null; en?: string | null };
+
 export interface CurrencyItem {
  id: number;
  code: string;
- name: string;
+ name: CurrencyLocalizedName;
  symbol: string;
+ exchange_rate?: number | string;
  is_default: boolean;
+ /** When omitted, the currency is treated as active. */
+ is_active?: boolean;
 }
 
 export interface CurrenciesListResponse {
@@ -694,12 +703,21 @@ export interface CurrenciesListResponse {
  };
 }
 
+/** Admin default (`is_default`) — same shape as settings `default_currency`. */
+export type DefaultCurrencyData = CurrencyItem;
+
+export interface DefaultCurrencyResponse {
+ status: boolean;
+ message: string;
+ data: DefaultCurrencyData;
+}
+
 export interface MyCurrencyData {
  id: number;
  code: string;
- name: string;
+ name: CurrencyLocalizedName;
  symbol: string;
- exchange_rate: string;
+ exchange_rate: string | number;
  is_default: boolean;
  is_active: boolean;
 }

@@ -7,6 +7,7 @@ import FormattedPrice from "@/shared/component/FormattedPrice";
 import { cn } from "@/shared/lib/utils";
 import Button from "@/shared/ui/Button";
 import type { CheckoutOrderSummary } from "../types";
+import { formatCityTaxLabel } from "../utils/taxDisplay";
 
 function isZeroMoney(value?: string | null) {
     if (value == null || value === "") return true;
@@ -103,6 +104,15 @@ export default function CheckoutOrderSummary({
                             accent={shippingIsFree ? "success" : undefined}
                         />
                     )}
+                    {summary.tax ? (
+                        <SummaryRow
+                            label={formatCityTaxLabel(
+                                t("cart.tax", "Tax"),
+                                summary.taxRate,
+                            )}
+                            value={summary.tax}
+                        />
+                    ) : null}
                     {summary.productDiscount &&
                         !isZeroMoney(summary.productDiscount) && (
                             <SummaryRow

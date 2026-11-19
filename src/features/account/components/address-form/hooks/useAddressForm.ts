@@ -11,7 +11,9 @@ import {
     useCreateAddress,
     useUpdateAddress,
 } from "@/features/account/hooks/useAddress";
+import { useProfile } from "@/features/account/hooks/useProfile";
 import type { NewAddressFormData } from "@/features/account/types";
+import { useAuthStore } from "@/store/auth";
 import {
     DEFAULT_ADDRESS_LATITUDE,
     DEFAULT_ADDRESS_LONGITUDE,
@@ -45,6 +47,9 @@ export function useAddressForm(options: UseAddressFormOptions = {}) {
     });
     const { mutate: updateAddress, isPending: isUpdating } = useUpdateAddress();
     const { data: addresses = [] } = useAddresses();
+    const { data: profile } = useProfile();
+    const authPhone = useAuthStore((s) => s.user?.phone);
+    const accountPhone = (profile?.phone ?? authPhone ?? "").trim();
 
     const isSubmitPending = isCreating || isUpdating;
 
@@ -57,6 +62,7 @@ export function useAddressForm(options: UseAddressFormOptions = {}) {
         register,
         handleSubmit,
         watch,
+        getValues,
         setValue,
         control,
         formState: { errors },
@@ -85,16 +91,23 @@ export function useAddressForm(options: UseAddressFormOptions = {}) {
             governorate: String(addressBeingEdited.area.city.governorate.id),
             city: String(addressBeingEdited.area.city.id),
             area: String(addressBeingEdited.area.id),
-            streetName: addressBeingEdited.street_name,
-            nearestLandmark: addressBeingEdited.nearest_landmark,
+            streetName: addressBeingEdited.street_name || "",
+            nearestLandmark: addressBeingEdited.nearest_landmark || "",
             buildingNumber: addressBeingEdited.building_number || "",
             floorApartment: addressBeingEdited.floor_apartment || "",
-            contactPhone: addressBeingEdited.contact_phone,
+            contactPhone: addressBeingEdited.contact_phone || "",
             lat: addressBeingEdited.lat,
             lng: addressBeingEdited.lng,
             isDefault: addressBeingEdited.is_default,
         });
     }, [isEditMode, addressBeingEdited, reset]);
+
+    // Prefill delivery phone from the account on create (user can override).
+    useEffect(() => {
+        if (isEditMode || !accountPhone) return;
+        if (getValues("contactPhone")?.trim()) return;
+        setValue("contactPhone", accountPhone, { shouldDirty: false, shouldValidate: false });
+    }, [accountPhone, getValues, isEditMode, setValue]);
 
     const selectedGovernorateId = watch("governorate");
     const selectedCityId = watch("city");

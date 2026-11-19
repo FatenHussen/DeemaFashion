@@ -81,12 +81,25 @@ export default function OrderItemsTable({
 
 function CompactOrderItemRow({ item }: { item: CartItem }) {
     const { t } = useTranslation();
-    const variant = [item.size, item.type].filter(Boolean).join(" · ");
+    const variantFromAttrs =
+        item.selectedAttributes && Object.keys(item.selectedAttributes).length > 0
+            ? Object.values(item.selectedAttributes).join(" · ")
+            : "";
+    const variant = [item.size, item.type].filter(Boolean).join(" · ") || variantFromAttrs;
     const isFree = Boolean((item as { _isFree?: boolean })._isFree);
+    const sku = item.sku?.trim();
+    const modelNumber = item.modelNumber?.trim();
+    const metaLine = [
+        item.productId != null ? `#${item.productId}` : null,
+        sku || null,
+        modelNumber || null,
+    ]
+        .filter(Boolean)
+        .join(" · ");
 
     return (
         <article className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-custom-muted">
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-custom-muted ring-1 ring-[color:color-mix(in_srgb,var(--color-border-primary)_70%,transparent)]">
                 {item.image ? (
                     <img
                         src={item.image}
@@ -109,6 +122,11 @@ function CompactOrderItemRow({ item }: { item: CartItem }) {
                     {item.store ? ` · ${item.store}` : ""}
                     {variant ? ` · ${variant}` : ""}
                 </p>
+                {metaLine ? (
+                    <p className="mt-0.5 text-[11px] text-custom-tertiary" dir="ltr">
+                        {metaLine}
+                    </p>
+                ) : null}
             </div>
             <span className="shrink-0 text-sm font-semibold tabular-nums text-custom-primary">
                 {isFree ? t("cart.free") : item.price}

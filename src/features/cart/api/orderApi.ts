@@ -64,6 +64,19 @@ function aliasPreviewResponseKeys(r: Record<string, unknown>): void {
  if (r.delivery_error == null && r.deliveryError != null) {
  r.delivery_error = r.deliveryError;
  }
+ if (r.tax_amount == null && r.taxAmount != null) r.tax_amount = r.taxAmount;
+ if (r.tax_amount_formatted == null && r.taxAmountFormatted != null) {
+ r.tax_amount_formatted = r.taxAmountFormatted;
+ }
+ if (r.tax_amount_currencies == null && r.taxAmountCurrencies != null) {
+ r.tax_amount_currencies = r.taxAmountCurrencies;
+ }
+ if (r.tax_formatted == null && r.taxFormatted != null) {
+ r.tax_formatted = r.taxFormatted;
+ }
+ if (r.tax_type == null && r.taxType != null) r.tax_type = r.taxType;
+ if (r.tax_value == null && r.taxValue != null) r.tax_value = r.taxValue;
+ if (r.tax_rate == null && r.taxRate != null) r.tax_rate = r.taxRate;
 }
 
 function applyDeliveryChoice(
@@ -97,6 +110,7 @@ function normalizePreviewOrderItemRow(raw: unknown): OrderPreviewOrderItem {
 
  return {
  shop_product_variant_id,
+ product_id: (it.product_id ?? it.productId) as number | undefined,
  quantity,
  product_name: (it.product_name ?? it.productName) as string | undefined,
  product_image: (it.product_image ?? it.productImage) as string | undefined,
@@ -110,6 +124,17 @@ function normalizePreviewOrderItemRow(raw: unknown): OrderPreviewOrderItem {
  extras_total: (it.extras_total ?? it.extrasTotal) as number | string | undefined,
  variant: Array.isArray(it.variant) ? (it.variant as string[]) : undefined,
  shop_name: (it.shop_name ?? it.shopName) as string | undefined,
+ sku: (it.sku as string | null | undefined) ?? null,
+ model_number:
+  ((it.model_number ?? it.modelNumber ?? it.model) as string | null | undefined) ??
+  null,
+ model: (it.model as string | null | undefined) ?? null,
+ available_quantity:
+  (it.available_quantity ?? it.availableQuantity ?? it.stock) as
+   | number
+   | null
+   | undefined,
+ stock: it.stock as number | null | undefined,
  image: (it.image ?? it.product_image ?? it.productImage) as string | undefined,
  extras: (it.extras as OrderPreviewOrderItem["extras"]) ?? undefined,
  note: it.note as string | undefined,

@@ -37,7 +37,7 @@ export default function ReviewConfirm() {
     const { t, i18n } = useTranslation();
     const { isRTL } = useLanguage();
     const navigate = useNavigate();
-    const { formatPrice } = useCurrency();
+    const { formatPrice, currency } = useCurrency();
     const cartItems = useCartStore((s) => s.items);
     const cart_type = useCartStore((s) => s.cart_type);
     const recipe_id = useCartStore((s) => s.recipe_id);
@@ -115,13 +115,19 @@ export default function ReviewConfirm() {
 
     const checkoutSummary = useMemo<CheckoutOrderSummaryType | null>(() => {
         if (!preview) return null;
-        return mapPreviewToCheckoutSummary(preview, displayItems, formatPrice, {
-            language: i18n.language,
-            discountLabel: t("cart.promotionDiscount"),
-            freeShippingLabel: t("cart.automaticFreeShipping"),
-            freeShippingValue: t("cart.freeDelivery"),
-        });
-    }, [displayItems, formatPrice, i18n.language, preview, t]);
+        return mapPreviewToCheckoutSummary(
+            preview,
+            displayItems,
+            formatPrice,
+            {
+                language: i18n.language,
+                discountLabel: t("cart.promotionDiscount"),
+                freeShippingLabel: t("cart.automaticFreeShipping"),
+                freeShippingValue: t("cart.freeDelivery"),
+            },
+            currency,
+        );
+    }, [currency, displayItems, formatPrice, i18n.language, preview, t]);
 
     useEffect(() => {
         if (promotionId == null || !preview?.available_promotions) return;

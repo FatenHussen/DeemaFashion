@@ -108,12 +108,23 @@ export default function CustomerSignUp({ role, setRole }: CustomerSignUpProps) {
     }, [selectedGovernorateId, setValue]);
 
     const onSubmit = async (data: SignUpFormValues) => {
+        const governorateId =
+            data.governorate && data.governorate !== "0"
+                ? Number(data.governorate)
+                : null;
+        const cityId =
+            data.city && data.city !== "0" ? Number(data.city) : null;
+
         const payload: RegisterPayload = {
             name: data.fullName,
             phone: normalizePhoneWithCountry(data.phoneCountryCode, data.phone),
             password: data.password,
-            city_id: Number(data.city),
-            governorate_id: Number(data.governorate),
+            ...(governorateId != null && Number.isFinite(governorateId)
+                ? { governorate_id: governorateId }
+                : {}),
+            ...(cityId != null && Number.isFinite(cityId)
+                ? { city_id: cityId }
+                : {}),
         };
 
         const trimmedEmail = data.email?.trim();
@@ -235,18 +246,13 @@ export default function CustomerSignUp({ role, setRole }: CustomerSignUpProps) {
                     <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="min-w-0 space-y-1.5">
                             <Label className="block text-sm font-medium text-custom-primary">
-                                {t("auth.governorate")}
-                                <span className="text-red-500 dark:text-red-400 ms-0.5">*</span>
+                                {`${t("auth.governorate")} (${t("common.optional")})`}
                             </Label>
                             <div className="relative">
                                 <select
                                     className={selectClasses}
                                     onScroll={handleGovScroll}
-                                    {...register("governorate", {
-                                        required: t("validation.selectGovernorate"),
-                                        validate: (v) =>
-                                            (v !== "" && v !== "0") || t("validation.selectGovernorate"),
-                                    })}
+                                    {...register("governorate")}
                                 >
                                     <option value="">{t("auth.selectGovernorate")}</option>
                                     {governorateOptions.map((opt) => (
@@ -274,17 +280,11 @@ export default function CustomerSignUp({ role, setRole }: CustomerSignUpProps) {
                                     />
                                 </svg>
                             </div>
-                            {errors.governorate && (
-                                <p className="text-xs text-red-500 dark:text-red-400">
-                                    {errors.governorate.message}
-                                </p>
-                            )}
                         </div>
 
                         <div className="min-w-0 space-y-1.5">
                             <Label className="block text-sm font-medium text-custom-primary">
-                                {t("auth.city")}
-                                <span className="text-red-500 dark:text-red-400 ms-0.5">*</span>
+                                {`${t("auth.city")} (${t("common.optional")})`}
                             </Label>
                             <div className="relative">
                                 <select
@@ -296,11 +296,7 @@ export default function CustomerSignUp({ role, setRole }: CustomerSignUpProps) {
                                         isLoadingCities
                                     }
                                     onScroll={handleCityScroll}
-                                    {...register("city", {
-                                        required: t("validation.selectCity"),
-                                        validate: (v) =>
-                                            (v !== "" && v !== "0") || t("validation.selectCity"),
-                                    })}
+                                    {...register("city")}
                                 >
                                     <option value="">{t("auth.selectCity")}</option>
                                     {cityOptions.map((opt) => (
@@ -328,11 +324,6 @@ export default function CustomerSignUp({ role, setRole }: CustomerSignUpProps) {
                                     />
                                 </svg>
                             </div>
-                            {errors.city && (
-                                <p className="text-xs text-red-500 dark:text-red-400">
-                                    {errors.city.message}
-                                </p>
-                            )}
                         </div>
                     </div>
 

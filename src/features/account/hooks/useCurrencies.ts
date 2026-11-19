@@ -1,22 +1,34 @@
-import { useMutation, useQuery, useQueryClient } from"@tanstack/react-query";
-import { toast } from"sonner";
-import { useTranslation } from"react-i18next";
-import { _CurrencyApi } from"../api/currency.service";
-import { queryKeys } from"@/utils/queryKeys";
-import type { UpdateCurrencyPayload } from"../types";
-import type { CurrencyItem } from"../types";
-import { getApiErrorMessage } from"@/shared/lib/apiMessage";
-import { useAuthStore } from"@/store/auth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { _CurrencyApi } from "../api/currency.service";
+import { queryKeys } from "@/utils/queryKeys";
+import type { UpdateCurrencyPayload } from "../types";
+import type { CurrencyItem } from "../types";
+import { getApiErrorMessage } from "@/shared/lib/apiMessage";
+import { useAuthStore } from "@/store/auth";
 
 /**
  * Hook to fetch list of available currencies
  */
 export function useCurrencies() {
  return useQuery({
- queryKey: queryKeys.currencies.list(),
- queryFn: () => _CurrencyApi.getCurrencies(),
- select: (response) => response.data.items as CurrencyItem[],
- staleTime: 1000 * 60 * 10, // 10 minutes - currencies change rarely
+  queryKey: queryKeys.currencies.list(),
+  queryFn: () => _CurrencyApi.getCurrencies(),
+  select: (response) => response.data.items as CurrencyItem[],
+  staleTime: 1000 * 60 * 10, // 10 minutes - currencies change rarely
+ });
+}
+
+/**
+ * Admin `is_default` — used at bootstrap when the visitor has no preference.
+ */
+export function useDefaultCurrency() {
+ return useQuery({
+  queryKey: queryKeys.currencies.default(),
+  queryFn: () => _CurrencyApi.getDefaultCurrency(),
+  select: (response) => response.data,
+  staleTime: 1000 * 60 * 5,
  });
 }
 
@@ -26,11 +38,11 @@ export function useCurrencies() {
 export function useMyCurrency() {
  const token = useAuthStore((s) => s.token);
  return useQuery({
- queryKey: queryKeys.currencies.myCurrency(),
- queryFn: () => _CurrencyApi.getMyCurrency(),
- select: (response) => response.data,
- enabled: Boolean(token),
- staleTime: 1000 * 60 * 5, // 5 minutes
+  queryKey: queryKeys.currencies.myCurrency(),
+  queryFn: () => _CurrencyApi.getMyCurrency(),
+  select: (response) => response.data,
+  enabled: Boolean(token),
+  staleTime: 1000 * 60 * 5, // 5 minutes
  });
 }
 

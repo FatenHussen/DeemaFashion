@@ -1,4 +1,5 @@
 import { useQuery } from"@tanstack/react-query";
+import { resolveCityTaxLine } from"../utils/taxDisplay";
 
 function normalizePaymentMethod(
  name?: string | null
@@ -31,7 +32,8 @@ import {
 
 function mapApiToOrderDetails(
  raw: TrackOrderApiData,
- formatPrice: (amount: number) => string
+ formatPrice: (amount: number) => string,
+ currencyCode?: string | null,
 ): OrderDetails {
  const shopEntries = Object.values(raw.items ?? {});
  const cartItems: CartItem[] = shopEntries.flatMap((shop) =>
@@ -66,6 +68,7 @@ function mapApiToOrderDetails(
  const deliveryIsFree = raw.delivery_price === 0;
  const status = (toOrderStepperStatus(raw.status) ?? "pending") as OrderStatusStep;
  const eta = raw.driver?.eta?.trim() ?? "";
+ const taxLine = resolveCityTaxLine(raw, formatPrice, currencyCode);
 
  return {
  id: raw.id,
@@ -81,7 +84,9 @@ function mapApiToOrderDetails(
  storeDiscounts: raw.basket_discount != null && raw.basket_discount > 0
  ? `-${formatPrice(raw.basket_discount)}`
  : formatPrice(0),
- tax:"10%",
+ ...(taxLine
+ ? { tax: taxLine.amount, ...(taxLine.rateLabel ? { taxRate: taxLine.rateLabel } : {}) }
+ : {}),
  couponDiscount: raw.coupon_discount != null && raw.coupon_discount > 0
  ? `-${formatPrice(raw.coupon_discount)}`
  : formatPrice(0),
@@ -106,7 +111,7 @@ function mapApiToOrderDetails(
 export function useOrderDetails() {
  const { orderId } = useParams<{ orderId: string }>();
  const navigate = useNavigate();
- const { formatPrice } = useCurrency();
+ const { formatPrice, currency } = useCurrency();
 
  const { data: rawData, isLoading, error } = useQuery({
  queryKey: queryKeys.orders.details(orderId ??""),
@@ -114,11 +119,9 @@ export function useOrderDetails() {
  enabled: orderId != null && orderId !=="",
  staleTime: 1000 * 60,
  });
- console.log("data", rawData);
- 
 
  const order: OrderDetails | null = rawData
- ? mapApiToOrderDetails(rawData, formatPrice)
+ ? mapApiToOrderDetails(rawData, formatPrice, currency)
  : null;
 
  const trackOnMap = () => {

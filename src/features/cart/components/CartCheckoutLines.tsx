@@ -1,5 +1,10 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { formatCheckoutDeliveryPrice } from "../lib/cartCheckout";
+import { HiOutlineClock, HiOutlineShoppingBag, HiOutlineTruck } from "react-icons/hi";
+import {
+    formatCheckoutDeliveryPrice,
+    formatDeliveryDurationLabel,
+} from "../lib/cartCheckout";
 import type { CartCheckout } from "../types";
 
 type CartCheckoutLinesProps = {
@@ -8,42 +13,39 @@ type CartCheckoutLinesProps = {
 
 export default function CartCheckoutLines({ checkout }: CartCheckoutLinesProps) {
     const { t } = useTranslation();
-    const minHours = checkout.delivery_min_hours;
-    const maxHours = checkout.delivery_max_hours;
-    const showWindow = minHours != null && maxHours != null;
+    const windowLabel = formatDeliveryDurationLabel(
+        checkout.delivery_min_hours,
+        checkout.delivery_max_hours,
+        t,
+    );
     const minOrder = checkout.min_order_amount.formatted.trim();
     const deliveryPrice = formatCheckoutDeliveryPrice(
         checkout.delivery_price,
         t("cart.deliveryFree", "Free"),
     );
 
-    if (!showWindow && !minOrder && !deliveryPrice) return null;
-
-    const windowLabel =
-        minHours != null && maxHours != null && minHours === maxHours
-            ? t("cart.deliveryWindowSame", "{{hours}} hours", { hours: minHours })
-            : t("cart.deliveryWindow", "{{min}}–{{max}} hours", {
-                  min: minHours,
-                  max: maxHours,
-              });
+    if (!windowLabel && !minOrder && !deliveryPrice) return null;
 
     return (
-        <div className="rounded-2xl border border-custom-primary bg-custom-card px-4 py-3 text-sm">
-            {showWindow && (
-                <Line
-                    label={t("cart.nearestDelivery", "Earliest delivery")}
+        <div className="grid gap-2.5 rounded-2xl border border-custom-primary bg-custom-card p-3.5 sm:grid-cols-3 sm:p-4">
+            {windowLabel && (
+                <InfoTile
+                    icon={<HiOutlineClock className="h-4 w-4" />}
+                    label={t("cart.deliveryDuration", "Delivery duration")}
                     value={windowLabel}
                 />
             )}
             {minOrder && (
-                <Line
+                <InfoTile
+                    icon={<HiOutlineShoppingBag className="h-4 w-4" />}
                     label={t("cart.minOrderAmount", "Minimum order")}
                     value={minOrder}
                     numeric
                 />
             )}
             {deliveryPrice && (
-                <Line
+                <InfoTile
+                    icon={<HiOutlineTruck className="h-4 w-4" />}
                     label={t("cart.deliveryPrice", "Delivery price")}
                     value={deliveryPrice}
                     numeric
@@ -53,27 +55,32 @@ export default function CartCheckoutLines({ checkout }: CartCheckoutLinesProps) 
     );
 }
 
-function Line({
+function InfoTile({
+    icon,
     label,
     value,
     numeric = false,
 }: {
+    icon: ReactNode;
     label: string;
     value: string;
     numeric?: boolean;
 }) {
     return (
-        <div className="flex items-center justify-between gap-3 py-1.5">
-            <span className="text-custom-secondary">{label}</span>
-            <span
+        <div className="rounded-xl bg-[color:color-mix(in_srgb,var(--color-main)_4%,var(--color-bg-card))] px-3 py-2.5">
+            <div className="mb-1 flex items-center gap-1.5 text-custom-secondary">
+                {icon}
+                <span className="text-[11px] font-medium">{label}</span>
+            </div>
+            <p
                 className={
                     numeric
-                        ? "font-semibold tabular-nums text-[color:var(--color-text)]"
-                        : "font-semibold text-[color:var(--color-text)]"
+                        ? "text-sm font-semibold tabular-nums text-[color:var(--color-text)]"
+                        : "text-sm font-semibold text-[color:var(--color-text)]"
                 }
             >
                 {value}
-            </span>
+            </p>
         </div>
     );
 }

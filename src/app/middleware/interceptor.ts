@@ -26,6 +26,19 @@ function getAcceptLanguage(): string {
     return lang.startsWith("ar") ? "ar" : "en";
 }
 
+/** Active storefront display currency for price-aware API responses. */
+function getDisplayCurrencyCode(): string | null {
+    try {
+        return (
+            localStorage.getItem("display_currency_code") ||
+            localStorage.getItem("currency") ||
+            null
+        );
+    } catch {
+        return null;
+    }
+}
+
 // Dev goes through the Vite proxy (see vite.config.ts) so the browser never
 // makes a cross-origin request and CORS preflight never happens.
 const prodApiBase =
@@ -58,6 +71,13 @@ _axios.interceptors.request.use(
         // explicit value must not be overwritten here.
         if (!config.headers["Accept-Language"]) {
             config.headers["Accept-Language"] = getAcceptLanguage();
+        }
+        // Prefer caller-provided currency; otherwise send the active display code.
+        if (!config.headers["X-Currency"]) {
+            const displayCurrency = getDisplayCurrencyCode();
+            if (displayCurrency) {
+                config.headers["X-Currency"] = displayCurrency;
+            }
         }
         // Let the browser set Content-Type with boundary when sending FormData
         if (config.data instanceof FormData) {

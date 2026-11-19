@@ -48,7 +48,7 @@ function parseSubtotal(s: string): number {
 export default function Cart() {
     const { t, i18n } = useTranslation();
     const { isRTL } = useLanguage();
-    const { formatPrice } = useCurrency();
+    const { formatPrice, currency } = useCurrency();
     const navigate = useNavigate();
     const checkoutCoupon = useCheckoutStore((s) => s.coupon);
     const [coupon, setCoupon] = useState(checkoutCoupon);
@@ -120,12 +120,17 @@ export default function Cart() {
 
     const summary = useMemo<OrderSummary>(() => {
         if (preview) {
-            return mapPreviewToCartSummary(preview, formatPrice, {
-                language: i18n.language,
-                discountLabel: t("cart.promotionDiscount"),
-                freeShippingLabel: t("cart.automaticFreeShipping"),
-                freeShippingValue: t("cart.freeDelivery"),
-            });
+            return mapPreviewToCartSummary(
+                preview,
+                formatPrice,
+                {
+                    language: i18n.language,
+                    discountLabel: t("cart.promotionDiscount"),
+                    freeShippingLabel: t("cart.automaticFreeShipping"),
+                    freeShippingValue: t("cart.freeDelivery"),
+                },
+                currency,
+            );
         }
         if (items.length > 0) {
             return {
@@ -134,7 +139,6 @@ export default function Cart() {
                 shipping: "-",
                 shippingIsFree: false,
                 storeDiscounts: formatPrice(0),
-                tax: "0%",
                 couponDiscount: formatPrice(0),
                 total: formatPrice(0),
             };
@@ -151,11 +155,10 @@ export default function Cart() {
             shipping: "Free",
             shippingIsFree: true,
             storeDiscounts: formatPrice(0),
-            tax: "0%",
             couponDiscount: formatPrice(0),
             total: subtotal,
         };
-    }, [formatPrice, i18n.language, items, preview, t]);
+    }, [currency, formatPrice, i18n.language, items, preview, t]);
 
     const previewPricesMap = useMemo(() => {
         const map = new Map<number, { price: number; priceBeforeDiscount?: number }>();
@@ -458,11 +461,23 @@ export default function Cart() {
                                         toNum(orderItem.extras_total) > 0
                                             ? formatPrice(toNum(orderItem.extras_total))
                                             : undefined;
-                                    const productHref = item.productId
-                                        ? `${paths.client.productDetails(item.productId)}${
-                                              item.shopId != null ? `?shop_id=${item.shopId}` : ""
-                                          }`
-                                        : undefined;
+                                    const productHref = (() => {
+                                        if (item.productId == null) return undefined;
+                                        const params = new URLSearchParams();
+                                        if (item.shopId != null) {
+                                            params.set("shop_id", String(item.shopId));
+                                        }
+                                        if (item.shop_product_variant_id != null) {
+                                            params.set(
+                                                "spv",
+                                                String(item.shop_product_variant_id),
+                                            );
+                                        }
+                                        const qs = params.toString();
+                                        return `${paths.client.productDetails(item.productId)}${
+                                            qs ? `?${qs}` : ""
+                                        }`;
+                                    })();
                                     return (
                                         <CartItemCard
                                             key={item.id}

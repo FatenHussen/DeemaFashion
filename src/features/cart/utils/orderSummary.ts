@@ -5,6 +5,7 @@ import type {
   OrderSummary,
 } from "../types";
 import { toNum } from "../utils";
+import { resolveCityTaxLine } from "./taxDisplay";
 import { buildAutomaticRewardLines } from "./automaticPromotions";
 
 export type PreviewSummaryLabels = {
@@ -16,6 +17,19 @@ export type PreviewSummaryLabels = {
 
 function formatDiscount(formatPrice: (amount: number) => string, amount: number): string {
   return amount > 0 ? `-${formatPrice(amount)}` : formatPrice(0);
+}
+
+function cityTaxSummary(
+  preview: OrderPreviewResponse,
+  formatPrice: (amount: number) => string,
+  currencyCode?: string | null,
+): { tax: string; taxRate?: string } | undefined {
+  const line = resolveCityTaxLine(preview, formatPrice, currencyCode);
+  if (!line) return undefined;
+  return {
+    tax: line.amount,
+    ...(line.rateLabel ? { taxRate: line.rateLabel } : {}),
+  };
 }
 
 export function getPreviewCouponDiscountAmount(preview: OrderPreviewResponse): number {
@@ -38,6 +52,7 @@ export function mapPreviewToCartSummary(
   preview: OrderPreviewResponse,
   formatPrice: (amount: number) => string,
   labels?: PreviewSummaryLabels,
+  currencyCode?: string | null,
 ): OrderSummary {
   const couponDiscount = getPreviewCouponDiscountAmount(preview);
   const subtotalBeforeDiscount = toNum(preview.subtotal_before_discount);
@@ -88,7 +103,7 @@ export function mapPreviewToCartSummary(
       basketDiscountAmount > 0
         ? formatDiscount(formatPrice, basketDiscountAmount)
         : undefined,
-    tax: "0%",
+    ...cityTaxSummary(preview, formatPrice, currencyCode),
     couponDiscount: formatDiscount(formatPrice, couponDiscount),
     ...(subscriptionDiscount > 0 && {
       subscriptionDiscount: formatDiscount(formatPrice, subscriptionDiscount),
@@ -117,6 +132,7 @@ export function mapPreviewToCheckoutSummary(
   items: CartItem[],
   formatPrice: (amount: number) => string,
   labels?: PreviewSummaryLabels,
+  currencyCode?: string | null,
 ): CheckoutOrderSummary {
   const couponDiscount = getPreviewCouponDiscountAmount(preview);
   const subtotalBeforeDiscount = toNum(preview.subtotal_before_discount);
@@ -142,6 +158,9 @@ export function mapPreviewToCheckoutSummary(
     line.id.startsWith("automatic-discount"),
   );
 
+  const pointsFromPoints = toNum(preview.coupon_discount_from_points);
+  const taxLine = cityTaxSummary(preview, formatPrice, currencyCode);
+
   return {
     items,
     itemsTotal: formatPrice(subtotalBeforeDiscount || subtotalAfterProductDiscount),
@@ -161,6 +180,10 @@ export function mapPreviewToCheckoutSummary(
         promotionDiscount: formatDiscount(formatPrice, promotionDiscount),
       }),
     ...(rewardLines.length > 0 && { rewardLines }),
+    ...taxLine,
+    ...(pointsFromPoints > 0 && {
+      pointsUsed: formatDiscount(formatPrice, pointsFromPoints),
+    }),
     total: formatPrice(toNum(preview.total)),
     numOfItems: toNum(preview.total_quantity),
     pointsEarned:

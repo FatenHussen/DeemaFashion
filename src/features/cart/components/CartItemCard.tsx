@@ -75,6 +75,15 @@ export default function CartItemCard({
     const imageSrc = image || item.image;
     const title = displayName ?? item.name;
     const lineNote = note ?? item.note;
+    const sku = item.sku?.trim();
+    const modelNumber = item.modelNumber?.trim();
+    const metaLine = [
+        item.productId != null ? `#${item.productId}` : null,
+        sku || null,
+        modelNumber || null,
+    ]
+        .filter(Boolean)
+        .join(" · ");
 
     const handleDecrease = () => {
         onQuantityChange(item.id, Math.max(1, item.quantity - 1));
@@ -130,6 +139,11 @@ export default function CartItemCard({
                                 )}
                                 {variantText && <span>{variantText}</span>}
                             </div>
+                            {metaLine ? (
+                                <p className="mt-0.5 hidden text-[11px] text-custom-tertiary sm:block" dir="ltr">
+                                    {metaLine}
+                                </p>
+                            ) : null}
                         </div>
 
                         {canEditQuantity && (

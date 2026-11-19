@@ -66,6 +66,8 @@ export interface AppSettingsData {
     color?: AppSettingsColorPalette;
     dark_color?: AppSettingsColorPalette;
     quick_order?: QuickOrderSettings | null;
+    /** Admin `is_default` — same object as `GET /user/currencies/default`. */
+    default_currency?: import("../types").DefaultCurrencyData | null;
 }
 
 export interface AppSettingsResponse {
