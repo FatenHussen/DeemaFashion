@@ -16,6 +16,7 @@ import type { BenefitItem } from "../api/activeBenefitsApi";
 
 type CheckoutSavingsSectionProps = {
     pointsBalance?: number | null;
+    pointsValueLabel?: string | null;
     coupons: BenefitItem[];
     freeDeliveries: BenefitItem[];
     selectedCouponKey: string | null;
@@ -29,6 +30,7 @@ type CheckoutSavingsSectionProps = {
 
 export default function CheckoutSavingsSection({
     pointsBalance,
+    pointsValueLabel,
     coupons,
     freeDeliveries,
     selectedCouponKey,
@@ -132,12 +134,19 @@ export default function CheckoutSavingsSection({
                         {t("checkout.currentBalance", "Your current balance")}
                     </h2>
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text)]">
-                            <FaStar className="h-4 w-4 text-[color:var(--color-api-second)]" />
-                            <span className="tabular-nums">
-                                {(pointsBalance ?? 0).toLocaleString()}{" "}
-                                {t("checkout.points", "points")}
+                        <div className="inline-flex flex-col gap-0.5 text-sm font-semibold text-[color:var(--color-text)]">
+                            <span className="inline-flex items-center gap-2">
+                                <FaStar className="h-4 w-4 text-[color:var(--color-api-second)]" />
+                                <span className="tabular-nums">
+                                    {(pointsBalance ?? 0).toLocaleString()}{" "}
+                                    {t("checkout.points", "points")}
+                                </span>
                             </span>
+                            {pointsValueLabel ? (
+                                <span className="ps-6 text-xs font-medium text-custom-secondary tabular-nums">
+                                    {pointsValueLabel}
+                                </span>
+                            ) : null}
                         </div>
                         <Button
                             type="button"

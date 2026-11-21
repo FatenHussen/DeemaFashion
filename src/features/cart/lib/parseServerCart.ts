@@ -131,14 +131,14 @@ export function mapServerCartItem(raw: unknown, index: number): CartItem | null 
     if (quantity <= 0) return null;
 
     const unitRaw =
-        raw.price_after_discount ??
         raw.unit_price ??
+        raw.price_after_discount ??
         raw.price ??
         raw.final_price ??
         (isRecord(raw.unit_price_money) ? raw.unit_price_money : undefined);
     const unitAmount = readMoneyAmount(unitRaw);
     const unitFormatted = readMoneyFormatted(unitRaw, unitAmount);
-    const lineRaw = raw.subtotal ?? raw.total ?? raw.line_total;
+    const lineRaw = raw.line_total ?? raw.subtotal ?? raw.total;
     const lineAmount =
         lineRaw != null ? readMoneyAmount(lineRaw) : unitAmount * quantity;
     const lineFormatted =

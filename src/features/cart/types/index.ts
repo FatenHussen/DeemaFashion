@@ -72,6 +72,8 @@ export type CartCheckout = {
  min_order_amount: ApiFormattedMoney;
  subtotal: ApiFormattedMoney;
  remaining_amount: ApiFormattedMoney;
+ /** Present on newer cart payloads — preferred for step-1 grand total. */
+ grand_total?: ApiFormattedMoney | null;
  can_checkout: boolean;
  delivery_min_hours: number | null;
  delivery_max_hours: number | null;
@@ -86,6 +88,17 @@ export type CartCheckout = {
  message: string | null;
  /** Set by preview when the appointment is earlier than allowed. */
  delivery_error?: string | null;
+};
+
+/** `order_details` block from newer `POST /orders/preview` responses. */
+export type OrderPreviewOrderDetails = {
+ stores?: Array<{ id?: number; name?: string }>;
+ subtotal?: ApiFormattedMoney | number | string;
+ tax?: ApiFormattedMoney | number | string;
+ points_discount?: ApiFormattedMoney | number | string;
+ coupon_discount?: ApiFormattedMoney | number | string;
+ delivery_fees?: ApiFormattedMoney | number | string;
+ grand_total?: ApiFormattedMoney | number | string;
 };
 
 /** Badge on a schedule catalog card */
@@ -416,6 +429,8 @@ export interface OrderPreviewResponse {
  tax_type?: string | null;
  tax_value?: number | string | null;
  tax_rate?: string | number;
+ /** Newer preview payload — preferred for checkout order details UI. */
+ order_details?: OrderPreviewOrderDetails | null;
 }
 
 export type StoreInfo = {

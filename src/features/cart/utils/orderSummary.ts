@@ -1,12 +1,38 @@
 import type {
   CartItem,
   CheckoutOrderSummary,
+  OrderPreviewOrderDetails,
   OrderPreviewResponse,
   OrderSummary,
 } from "../types";
 import { toNum } from "../utils";
 import { resolveCityTaxLine } from "./taxDisplay";
 import { buildAutomaticRewardLines } from "./automaticPromotions";
+
+function readDetailsMoney(
+  value: unknown,
+  formatPrice: (amount: number) => string,
+): string | undefined {
+  if (value == null || value === "") return undefined;
+  if (typeof value === "object" && value !== null) {
+    const formatted = (value as { formatted?: unknown }).formatted;
+    if (typeof formatted === "string" && formatted.trim()) return formatted.trim();
+    const amount = toNum((value as { amount?: unknown }).amount);
+    if (amount > 0 || amount === 0) return formatPrice(amount);
+  }
+  if (typeof value === "string" && value.trim()) {
+    if (/[0-9]/.test(value)) return value.trim();
+    return formatPrice(toNum(value));
+  }
+  return formatPrice(toNum(value));
+}
+
+function readDetailsStoreNames(details?: OrderPreviewOrderDetails | null): string[] {
+  if (!details?.stores?.length) return [];
+  return details.stores
+    .map((store) => store.name?.trim())
+    .filter((name): name is string => Boolean(name));
+}
 
 export type PreviewSummaryLabels = {
   language: string;
@@ -160,22 +186,40 @@ export function mapPreviewToCheckoutSummary(
 
   const pointsFromPoints = toNum(preview.coupon_discount_from_points);
   const taxLine = cityTaxSummary(preview, formatPrice, currencyCode);
-  const storeNames = Array.from(
-    new Set(
-      items
-        .map((item) => item.store?.trim())
-        .filter((name): name is string => Boolean(name)),
-    ),
-  );
+  const details = preview.order_details;
+  const detailsStoreNames = readDetailsStoreNames(details);
+  const storeNames =
+    detailsStoreNames.length > 0
+      ? detailsStoreNames
+      : Array.from(
+          new Set(
+            items
+              .map((item) => item.store?.trim())
+              .filter((name): name is string => Boolean(name)),
+          ),
+        );
+
+  const detailsSubtotal = readDetailsMoney(details?.subtotal, formatPrice);
+  const detailsTax = readDetailsMoney(details?.tax, formatPrice);
+  const detailsPoints = readDetailsMoney(details?.points_discount, formatPrice);
+  const detailsCoupon = readDetailsMoney(details?.coupon_discount, formatPrice);
+  const detailsDelivery = readDetailsMoney(details?.delivery_fees, formatPrice);
+  const detailsGrandTotal = readDetailsMoney(details?.grand_total, formatPrice);
 
   return {
     items,
     itemsTotal: formatPrice(subtotalBeforeDiscount || subtotalAfterProductDiscount),
-    subtotal: formatPrice(toNum(preview.subtotal)),
-    deliveryFees: deliveryPrice === 0 ? "Free" : formatPrice(deliveryPrice),
-    shippingIsFree: deliveryPrice === 0,
+    subtotal: detailsSubtotal ?? formatPrice(toNum(preview.subtotal)),
+    deliveryFees:
+      detailsDelivery ??
+      (deliveryPrice === 0 ? "Free" : formatPrice(deliveryPrice)),
+    shippingIsFree:
+      detailsDelivery != null
+        ? isZeroFormattedMoney(detailsDelivery)
+        : deliveryPrice === 0,
     storeDiscounts: formatDiscount(formatPrice, basketDiscountAmount),
-    couponDiscount: formatDiscount(formatPrice, couponDiscount),
+    couponDiscount:
+      detailsCoupon ?? formatDiscount(formatPrice, couponDiscount),
     ...(productDiscount > 0 && {
       productDiscount: formatDiscount(formatPrice, productDiscount),
     }),
@@ -187,12 +231,16 @@ export function mapPreviewToCheckoutSummary(
         promotionDiscount: formatDiscount(formatPrice, promotionDiscount),
       }),
     ...(rewardLines.length > 0 && { rewardLines }),
-    ...taxLine,
-    ...(pointsFromPoints > 0 && {
-      pointsUsed: formatDiscount(formatPrice, pointsFromPoints),
-    }),
+    ...(detailsTax
+      ? { tax: detailsTax }
+      : taxLine),
+    ...(detailsPoints
+      ? { pointsUsed: detailsPoints }
+      : pointsFromPoints > 0
+        ? { pointsUsed: formatDiscount(formatPrice, pointsFromPoints) }
+        : {}),
     ...(storeNames.length > 0 && { storeNames }),
-    total: formatPrice(toNum(preview.total)),
+    total: detailsGrandTotal ?? formatPrice(toNum(preview.total)),
     numOfItems: toNum(preview.total_quantity),
     pointsEarned:
       typeof preview.automatic_promotions?.points_expected === "number"
@@ -201,4 +249,10 @@ export function mapPreviewToCheckoutSummary(
           ? preview.automatic_promotions.points_awarded
           : undefined,
   };
+}
+
+function isZeroFormattedMoney(value: string): boolean {
+  if (/free/i.test(value)) return true;
+  const numeric = parseFloat(String(value).replace(/[^0-9.]/g, ""));
+  return !Number.isFinite(numeric) || numeric === 0;
 }

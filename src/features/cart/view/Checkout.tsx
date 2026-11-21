@@ -10,7 +10,10 @@ import CheckoutOrderSummary from "../components/CheckoutOrderSummary";
 import CheckoutSavingsSection from "../components/CheckoutSavingsSection";
 import DeliveryChoiceSection from "../components/DeliveryChoiceSection";
 import { useAddresses } from "@/features/account/hooks/useAddress";
-import { useActivePoints } from "@/features/account/hooks/usePoints";
+import {
+    useActivePoints,
+    usePointsSummary,
+} from "@/features/account/hooks/usePoints";
 import { useOrderPreview } from "../hooks/useOrderPreview";
 import { useActiveBenefits } from "../hooks/useActiveBenefits";
 import { useCartStore } from "@/store/cart";
@@ -96,6 +99,7 @@ export default function Checkout() {
     const clearCart = useCartStore((s) => s.clearCart);
     const { data: activeBenefitsData } = useActiveBenefits();
     const { data: activePoints } = useActivePoints(authenticated);
+    const { data: pointsSummary } = usePointsSummary(authenticated);
 
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
@@ -444,11 +448,12 @@ export default function Checkout() {
 
             const { id } = await _OrderApi.postOrder(payload);
             const cartSnapshot = useCartStore.getState().items;
-            // Suppress sync across refresh, wipe server first, then local.
+            // Backend clears ordered cart_items; wipe local cache too and
+            // suppress sync so a stale GET cannot refill before the wipe lands.
             suppressCartServerPull(120_000);
-            await clearServerCartSafe(cartSnapshot);
             clearCart();
             useCheckoutStore.getState().reset();
+            await clearServerCartSafe(cartSnapshot);
             setCreatedOrderId(id);
             setShowSuccessPopup(true);
         } catch (err) {
@@ -544,7 +549,12 @@ export default function Checkout() {
                     />
 
                     <CheckoutSavingsSection
-                        pointsBalance={activePoints?.points}
+                        pointsBalance={
+                            pointsSummary?.points ?? activePoints?.points
+                        }
+                        pointsValueLabel={
+                            pointsSummary?.value?.estimated_value_formatted
+                        }
                         coupons={activeBenefitsData?.coupons ?? []}
                         freeDeliveries={
                             activeBenefitsData?.free_deliveries ?? []

@@ -61,8 +61,14 @@ export default function Cart() {
         (isAddressesLoading || (addressId != null && isPreviewLoading));
 
     const summary = useMemo<OrderSummary>(() => {
+        const grandFromCheckout =
+            serverCheckout?.grand_total?.formatted?.trim() ||
+            (serverCheckout?.grand_total?.amount != null
+                ? formatPrice(serverCheckout.grand_total.amount)
+                : null);
+
         if (preview) {
-            return mapPreviewToCartSummary(
+            const mapped = mapPreviewToCartSummary(
                 preview,
                 formatPrice,
                 {
@@ -73,34 +79,37 @@ export default function Cart() {
                 },
                 currency,
             );
+            return grandFromCheckout
+                ? { ...mapped, total: grandFromCheckout }
+                : mapped;
         }
         if (items.length > 0) {
+            const numOfItems = items.reduce((sum, i) => sum + i.quantity, 0);
+            const subtotalNum = items.reduce(
+                (sum, i) => sum + parseSubtotal(i.subtotal),
+                0,
+            );
+            const subtotal = formatPrice(subtotalNum);
             return {
-                numOfItems: 0,
-                subtotal: formatPrice(0),
+                numOfItems,
+                subtotal,
                 shipping: "-",
                 shippingIsFree: false,
                 storeDiscounts: formatPrice(0),
                 couponDiscount: formatPrice(0),
-                total: formatPrice(0),
+                total: grandFromCheckout ?? subtotal,
             };
         }
-        const numOfItems = items.reduce((sum, i) => sum + i.quantity, 0);
-        const subtotalNum = items.reduce(
-            (sum, i) => sum + parseSubtotal(i.subtotal),
-            0,
-        );
-        const subtotal = formatPrice(subtotalNum);
         return {
-            numOfItems,
-            subtotal,
+            numOfItems: 0,
+            subtotal: formatPrice(0),
             shipping: "Free",
             shippingIsFree: true,
             storeDiscounts: formatPrice(0),
             couponDiscount: formatPrice(0),
-            total: subtotal,
+            total: formatPrice(0),
         };
-    }, [currency, formatPrice, i18n.language, items, preview, t]);
+    }, [currency, formatPrice, i18n.language, items, preview, serverCheckout, t]);
 
     const previewOrderItemByCartId = useMemo(
         () =>

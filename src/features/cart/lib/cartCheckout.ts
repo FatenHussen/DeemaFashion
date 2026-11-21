@@ -84,6 +84,7 @@ export function normalizeCartCheckout(raw: unknown): CartCheckout | null {
         raw.delivery_min_hours != null ||
         raw.delivery_max_hours != null ||
         raw.delivery_price != null ||
+        raw.grand_total != null ||
         raw.instant_only != null ||
         raw.message != null;
 
@@ -98,6 +99,7 @@ export function normalizeCartCheckout(raw: unknown): CartCheckout | null {
         min_order_amount: readMoney(raw.min_order_amount),
         subtotal: readMoney(raw.subtotal),
         remaining_amount: readMoney(raw.remaining_amount),
+        grand_total: readOptionalMoney(raw.grand_total),
         can_checkout: canCheckout,
         delivery_min_hours: readHours(raw.delivery_min_hours),
         delivery_max_hours: readHours(raw.delivery_max_hours),

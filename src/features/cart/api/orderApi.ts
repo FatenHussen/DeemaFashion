@@ -77,6 +77,9 @@ function aliasPreviewResponseKeys(r: Record<string, unknown>): void {
  if (r.tax_type == null && r.taxType != null) r.tax_type = r.taxType;
  if (r.tax_value == null && r.taxValue != null) r.tax_value = r.taxValue;
  if (r.tax_rate == null && r.taxRate != null) r.tax_rate = r.taxRate;
+ if (r.order_details == null && r.orderDetails != null) {
+ r.order_details = r.orderDetails;
+ }
 }
 
 function applyDeliveryChoice(
