@@ -250,8 +250,12 @@ export default function ReviewConfirm() {
             };
 
             const { id } = await _OrderApi.postOrder(payload);
-            setShowSuccessPopup(true);
+            const cartSnapshot = useCartStore.getState().items;
+            // Mark success before clearing so empty-cart redirects do not fire.
             setCreatedOrderId(id);
+            setShowSuccessPopup(true);
+            suppressCartServerPull();
+            await clearServerCartSafe(cartSnapshot);
             useCheckoutStore.getState().reset();
             clearCart();
         } catch (err) {

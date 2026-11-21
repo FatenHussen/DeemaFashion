@@ -29,6 +29,8 @@ export type CartItem = {
  sku?: string;
  /** Model number when the API / PDP provides one */
  modelNumber?: string;
+ /** Available stock at add-to-cart time (informational) */
+ availableQuantity?: number;
  /** For API: variant id when product has variants */
  variantId?: number;
  /** For API: shop id (same as storeId but typed for API) */
