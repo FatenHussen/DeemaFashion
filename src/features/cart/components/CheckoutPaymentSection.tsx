@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/context/LanguageContext";
 import { cn } from "@/shared/lib/utils";
 import type { PaymentMethodOption } from "../types";
-import { isPaymentMethodEnabled } from "../utils/paymentMethods";
+import { getEnabledPaymentMethods } from "../utils/paymentMethods";
 
 type CheckoutPaymentSectionProps = {
     paymentMethods: PaymentMethodOption[];
@@ -20,20 +21,26 @@ export default function CheckoutPaymentSection({
     const { t } = useTranslation();
     const { isRTL } = useLanguage();
 
+    const enabledMethods = useMemo(
+        () => getEnabledPaymentMethods(paymentMethods),
+        [paymentMethods],
+    );
+
     const defaultMethodId =
         selectedPaymentMethodId ||
-        (allowEmpty
-            ? ""
-            : paymentMethods.find(isPaymentMethodEnabled)?.id || "");
+        (allowEmpty ? "" : enabledMethods[0]?.id || "");
 
     return (
-        <section dir={isRTL ? "rtl" : "ltr"}>
-            <h2 className="mb-4 text-xl font-bold text-[color:var(--color-text)]">
+        <section
+            className="rounded-2xl border border-custom-primary bg-custom-card px-4 py-5 sm:px-5"
+            dir={isRTL ? "rtl" : "ltr"}
+        >
+            <h2 className="mb-4 text-lg font-bold text-[color:var(--color-text)]">
                 {t("checkout.paymentMethod", "Payment method")}
             </h2>
 
-            {paymentMethods.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-custom-primary bg-custom-card px-5 py-8 text-center">
+            {enabledMethods.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-custom-primary px-5 py-8 text-center">
                     <p className="text-sm text-custom-secondary">
                         {t(
                             "checkout.noPaymentMethods",
@@ -42,109 +49,73 @@ export default function CheckoutPaymentSection({
                     </p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-3">
-                    {paymentMethods.map((method) => {
-                        const enabled = isPaymentMethodEnabled(method);
+                <div
+                    className={cn(
+                        "grid gap-3",
+                        enabledMethods.length > 1
+                            ? "sm:grid-cols-2 lg:grid-cols-3"
+                            : "grid-cols-1",
+                    )}
+                >
+                    {enabledMethods.map((method) => {
                         const isSelected =
-                            enabled &&
                             method.id ===
-                                (selectedPaymentMethodId || defaultMethodId);
+                            (selectedPaymentMethodId || defaultMethodId);
 
                         return (
                             <button
                                 key={method.id}
                                 type="button"
-                                disabled={!enabled}
-                                onClick={() => {
-                                    if (!enabled) return;
-                                    onPaymentMethodSelect(method.id);
-                                }}
+                                onClick={() => onPaymentMethodSelect(method.id)}
                                 className={cn(
-                                    "flex w-full items-center gap-4 rounded-2xl border-2 px-4 py-4 text-start sm:px-5",
-                                    "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--color-main)_25%,transparent)]",
-                                    enabled
-                                        ? "bg-custom-card"
-                                        : "cursor-not-allowed bg-custom-card opacity-55",
-                                    enabled &&
-                                        !isSelected &&
-                                        "border-custom-primary hover:border-[color:color-mix(in_srgb,var(--color-main)_35%,transparent)]",
+                                    "relative flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-4 text-center transition-colors",
+                                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--color-main)_25%,transparent)]",
                                 )}
                                 style={
                                     isSelected
                                         ? {
                                               borderColor:
-                                                  "color-mix(in srgb, var(--color-main) 55%, transparent)",
+                                                  "color-mix(in srgb, var(--color-api-second) 55%, transparent)",
                                               backgroundColor:
-                                                  "color-mix(in srgb, var(--color-main) 8%, var(--color-bg-card))",
-                                              boxShadow:
-                                                  "0 10px 24px -12px color-mix(in srgb, var(--color-main) 35%, transparent)",
+                                                  "color-mix(in srgb, var(--color-api-second) 8%, var(--color-bg-card))",
                                           }
-                                        : !enabled
-                                          ? {
-                                                borderColor:
-                                                    "color-mix(in srgb, var(--color-text) 10%, transparent)",
-                                            }
-                                          : undefined
+                                        : {
+                                              borderColor:
+                                                  "color-mix(in srgb, var(--color-text) 12%, transparent)",
+                                              backgroundColor:
+                                                  "var(--color-bg-card)",
+                                          }
                                 }
                             >
-                                <span
-                                    className={cn(
-                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                                        isSelected
-                                            ? "border-transparent"
-                                            : "border-custom-secondary bg-custom-card",
-                                    )}
-                                    style={
-                                        isSelected
-                                            ? {
-                                                  backgroundColor:
-                                                      "var(--color-api-second)",
-                                              }
-                                            : undefined
-                                    }
-                                >
-                                    {isSelected && (
-                                        <span className="h-2 w-2 rounded-full bg-white" />
-                                    )}
-                                </span>
-
-                                <div className="flex h-12 w-14 shrink-0 items-center justify-center">
-                                    {method.icon ? (
-                                        <img
-                                            src={method.icon}
-                                            alt=""
-                                            className="max-h-full max-w-full object-contain"
-                                        />
-                                    ) : (
-                                        <div
-                                            className="h-10 w-10 rounded-full"
-                                            style={{
-                                                backgroundColor:
-                                                    "color-mix(in srgb, var(--color-main) 12%, var(--color-bg-tertiary))",
-                                            }}
-                                        />
-                                    )}
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold leading-tight text-[color:var(--color-text)] sm:text-base">
-                                        {method.name}
-                                    </p>
-                                    {method.description ? (
-                                        <p className="mt-1 line-clamp-2 text-xs text-custom-secondary sm:text-sm">
-                                            {method.description}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                {!enabled ? (
-                                    <span className="shrink-0 rounded-full bg-custom-tertiary px-2.5 py-1 text-[11px] font-semibold text-custom-secondary">
-                                        {t(
-                                            "checkout.paymentUnavailable",
-                                            "Unavailable",
-                                        )}
-                                    </span>
+                                {isSelected ? (
+                                    <span
+                                        className="absolute top-2 end-2 h-2.5 w-2.5 rounded-full"
+                                        style={{
+                                            backgroundColor:
+                                                "var(--color-success)",
+                                        }}
+                                    />
                                 ) : null}
+
+                                {method.icon ? (
+                                    <img
+                                        src={method.icon}
+                                        alt=""
+                                        className="h-8 max-w-[72px] object-contain"
+                                    />
+                                ) : (
+                                    <div
+                                        className="h-8 w-8 rounded-full"
+                                        style={{
+                                            backgroundColor:
+                                                "color-mix(in srgb, var(--color-main) 12%, var(--color-bg-tertiary))",
+                                        }}
+                                    />
+                                )}
+
+                                <p className="text-sm font-semibold text-[color:var(--color-text)]">
+                                    {method.name}
+                                </p>
                             </button>
                         );
                     })}

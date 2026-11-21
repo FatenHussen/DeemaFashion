@@ -48,6 +48,7 @@ export const pointsApi = {
  const res = await _axios.post<ExchangeCouponResponse>(
  apiRoutes.points.exchangeCoupon,
  { points },
+ { skipSuccessToast: true },
  );
  return res.data;
  },

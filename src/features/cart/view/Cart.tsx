@@ -1,15 +1,14 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/context/LanguageContext";
 import { useNavigate, Link } from "react-router-dom";
-import { toast } from "sonner";
 import { paths } from "@/app/routes/path/paths";
 import { continueShoppingPath } from "@/shared/lib/shoppingResume";
-import { CartSummary, CartTable } from "../components";
+import { CartSummary, CartItemsList } from "../components";
 import CheckoutProgressIndicator from "@/shared/component/CheckoutProgressIndicator";
 import BasePopup from "@/shared/component/BasePopup";
 import Button from "@/shared/ui/Button";
-import { HiArrowLeft, HiTrash } from "react-icons/hi";
+import { HiArrowLeft, HiPlus, HiTrash } from "react-icons/hi";
 import { useCartStore } from "@/store/cart";
 import { useAddresses } from "@/features/account/hooks/useAddress";
 import { useOrderPreview } from "../hooks/useOrderPreview";
@@ -36,6 +35,9 @@ export default function Cart() {
     const { formatPrice, currency } = useCurrency();
     const navigate = useNavigate();
     const [showClearCartPopup, setShowClearCartPopup] = useState(false);
+    const [itemPendingRemove, setItemPendingRemove] = useState<
+        number | string | null
+    >(null);
 
     const items = useCartStore((s) => s.items);
     const cart_type = useCartStore((s) => s.cart_type);
@@ -127,16 +129,23 @@ export default function Cart() {
     };
 
     const handleRemoveItem = (itemId: number | string) => {
-        const item = useCartStore.getState().items.find((i) => i.id === itemId);
+        setItemPendingRemove(itemId);
+    };
+
+    const handleConfirmRemoveItem = () => {
+        if (itemPendingRemove == null) return;
+        const item = useCartStore
+            .getState()
+            .items.find((i) => i.id === itemPendingRemove);
         if (item) syncRemoveToServer(item);
-        removeItem(itemId);
+        removeItem(itemPendingRemove);
+        setItemPendingRemove(null);
     };
 
     const handleConfirmClearCart = () => {
         clearServerCartSafe(items);
         clearCart();
         setShowClearCartPopup(false);
-        toast.success(t("cart.cartCleared", "Cart cleared"));
     };
 
     const checkout = preview?.checkout ?? serverCheckout ?? null;
@@ -195,86 +204,94 @@ export default function Cart() {
                         </div>
                     </div>
                 ) : (
-                    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-                        <div className="space-y-6">
-                            <div className="flex flex-wrap items-end justify-between gap-3">
-                                <div>
-                                    <h1 className="text-2xl font-semibold tracking-tight text-custom-primary">
-                                        {t("cart.createOrder", "Create order")}
-                                    </h1>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm">
+                    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h1 className="text-2xl font-semibold tracking-tight text-custom-primary">
+                                    {t("cart.createOrder", "Create order")}
+                                </h1>
+                                <p className="mt-1 text-sm text-custom-secondary">
+                                    {t("cart.itemsInCart", "{{count}} items", {
+                                        count: items.reduce(
+                                            (sum, item) => sum + item.quantity,
+                                            0,
+                                        ),
+                                    })}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {cart_type === "default" ? (
                                     <Link
                                         to={continueShoppingPath(paths.client.home)}
                                         state={{ restoreShoppingScroll: true }}
-                                        className="inline-flex items-center gap-1.5 font-medium text-custom-secondary hover:text-custom-primary"
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-[color:color-mix(in_srgb,var(--color-api-second)_35%,transparent)] bg-custom-card px-3.5 py-2 text-sm font-semibold text-[color:var(--color-api-second)] hover:bg-[color:color-mix(in_srgb,var(--color-api-second)_8%,var(--color-bg-card))]"
                                     >
-                                        <HiArrowLeft
-                                            className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`}
-                                        />
-                                        {t("cart.continueShopping")}
+                                        <HiPlus className="h-4 w-4" />
+                                        {t("cart.addProducts", "Add products")}
                                     </Link>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowClearCartPopup(true)}
-                                        className="inline-flex items-center gap-1.5 font-medium text-custom-secondary hover:text-[color:var(--color-error)]"
-                                    >
-                                        <HiTrash className="h-4 w-4" />
-                                        {t("cart.clearCart")}
-                                    </button>
-                                </div>
+                                ) : null}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowClearCartPopup(true)}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-custom-primary text-custom-secondary hover:border-[color:var(--color-error)] hover:text-[color:var(--color-error)]"
+                                    aria-label={t("cart.clearCart")}
+                                    title={t("cart.clearCart")}
+                                >
+                                    <HiTrash className="h-4 w-4" />
+                                </button>
                             </div>
-
-                            <CartTable
-                                items={items}
-                                canEditQuantity={cart_type === "default"}
-                                onQuantityChange={handleQuantityChange}
-                                onRemove={handleRemoveItem}
-                                getRowExtras={(item) => {
-                                    const orderItem = previewOrderItemByCartId.get(item.id);
-                                    const previewPrice = orderItem
-                                        ? (() => {
-                                              const priceBefore = toNum(orderItem.price);
-                                              const priceAfter = toNum(
-                                                  orderItem.price_after_discount ??
-                                                      orderItem.price,
-                                              );
-                                              return {
-                                                  price: priceAfter || priceBefore,
-                                                  priceBeforeDiscount:
-                                                      priceBefore > 0
-                                                          ? priceBefore
-                                                          : undefined,
-                                              };
-                                          })()
-                                        : undefined;
-                                    const productHref = (() => {
-                                        if (item.productId == null) return undefined;
-                                        const params = new URLSearchParams();
-                                        if (item.shopId != null) {
-                                            params.set("shop_id", String(item.shopId));
-                                        }
-                                        if (item.shop_product_variant_id != null) {
-                                            params.set(
-                                                "spv",
-                                                String(item.shop_product_variant_id),
-                                            );
-                                        }
-                                        const qs = params.toString();
-                                        return `${paths.client.productDetails(item.productId)}${
-                                            qs ? `?${qs}` : ""
-                                        }`;
-                                    })();
-                                    return {
-                                        previewPrice,
-                                        displayName: orderItem?.product_name,
-                                        displayVariant: orderItem?.variant,
-                                        displaySku: orderItem?.sku ?? item.sku,
-                                        productHref,
-                                    };
-                                }}
-                            />
                         </div>
+
+                        <CartItemsList
+                            items={items}
+                            canEditQuantity={cart_type === "default"}
+                            onQuantityChange={handleQuantityChange}
+                            onRemove={handleRemoveItem}
+                            getRowExtras={(item) => {
+                                const orderItem = previewOrderItemByCartId.get(item.id);
+                                const previewPrice = orderItem
+                                    ? (() => {
+                                          const priceBefore = toNum(orderItem.price);
+                                          const priceAfter = toNum(
+                                              orderItem.price_after_discount ??
+                                                  orderItem.price,
+                                          );
+                                          return {
+                                              price: priceAfter || priceBefore,
+                                              priceBeforeDiscount:
+                                                  priceBefore > 0
+                                                      ? priceBefore
+                                                      : undefined,
+                                          };
+                                      })()
+                                    : undefined;
+                                const productHref = (() => {
+                                    if (item.productId == null) return undefined;
+                                    const params = new URLSearchParams();
+                                    if (item.shopId != null) {
+                                        params.set("shop_id", String(item.shopId));
+                                    }
+                                    if (item.shop_product_variant_id != null) {
+                                        params.set(
+                                            "spv",
+                                            String(item.shop_product_variant_id),
+                                        );
+                                    }
+                                    const qs = params.toString();
+                                    return `${paths.client.productDetails(item.productId)}${
+                                        qs ? `?${qs}` : ""
+                                    }`;
+                                })();
+                                return {
+                                    previewPrice,
+                                    displayName: orderItem?.product_name,
+                                    displayVariant: orderItem?.variant,
+                                    displaySku: orderItem?.sku ?? item.sku,
+                                    displayStore: item.store,
+                                    productHref,
+                                };
+                            }}
+                        />
 
                         <CartSummary
                             summary={summary}
@@ -288,6 +305,50 @@ export default function Cart() {
                     </div>
                 )}
             </div>
+
+            <BasePopup
+                isOpen={itemPendingRemove != null}
+                onClose={() => setItemPendingRemove(null)}
+                icon={
+                    <div
+                        className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                        style={{
+                            backgroundColor: "var(--color-error)",
+                            boxShadow:
+                                "0 12px 28px -10px color-mix(in srgb, var(--color-error) 40%, transparent)",
+                        }}
+                    >
+                        <HiTrash className="w-10 h-10 text-white" />
+                    </div>
+                }
+                title={t("cart.removeItemTitle", "Remove item?")}
+                description={t(
+                    "cart.removeItemConfirm",
+                    "Are you sure you want to remove this item from your cart?",
+                )}
+                contentClassName="pt-12 p-8"
+                actions={
+                    <div className="flex flex-col gap-3">
+                        <Button
+                            type="button"
+                            variant="danger"
+                            size="lg"
+                            fullWidth
+                            onClick={handleConfirmRemoveItem}
+                            className="text-white rounded-xl"
+                        >
+                            {t("cart.removeItem", "Remove item")}
+                        </Button>
+                        <button
+                            type="button"
+                            onClick={() => setItemPendingRemove(null)}
+                            className="text-sm text-custom-secondary hover:text-custom-primary hover:underline transition-colors"
+                        >
+                            {t("common.cancel")}
+                        </button>
+                    </div>
+                }
+            />
 
             <BasePopup
                 isOpen={showClearCartPopup}

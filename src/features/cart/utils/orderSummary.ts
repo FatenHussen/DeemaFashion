@@ -160,6 +160,13 @@ export function mapPreviewToCheckoutSummary(
 
   const pointsFromPoints = toNum(preview.coupon_discount_from_points);
   const taxLine = cityTaxSummary(preview, formatPrice, currencyCode);
+  const storeNames = Array.from(
+    new Set(
+      items
+        .map((item) => item.store?.trim())
+        .filter((name): name is string => Boolean(name)),
+    ),
+  );
 
   return {
     items,
@@ -184,6 +191,7 @@ export function mapPreviewToCheckoutSummary(
     ...(pointsFromPoints > 0 && {
       pointsUsed: formatDiscount(formatPrice, pointsFromPoints),
     }),
+    ...(storeNames.length > 0 && { storeNames }),
     total: formatPrice(toNum(preview.total)),
     numOfItems: toNum(preview.total_quantity),
     pointsEarned:

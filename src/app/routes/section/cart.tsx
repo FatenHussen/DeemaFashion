@@ -33,6 +33,7 @@ export const CartRoutes: any[] = [
                 element: <Checkout />,
             },
             {
+                // Legacy URL — redirects to checkout (2-step flow).
                 path: "review",
                 element: <ReviewConfirm />,
             },

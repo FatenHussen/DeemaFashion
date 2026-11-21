@@ -109,13 +109,24 @@ export async function refreshCartFromServer(): Promise<boolean> {
     if (local.cart_type !== "default") return false;
 
     const payload = await getCart<unknown>();
+    // Re-check after await: order success may have suppressed pulls mid-flight.
+    if (isServerPullSuppressed()) return false;
     if (payload == null) return false;
 
     const parsed = parseServerCart(payload);
     if (parsed.items.length === 0) {
         // Avoid wiping a just-added local cart when the POST has not landed yet.
-        if (local.items.length > 0) return false;
+        if (useCartStore.getState().items.length > 0) return false;
         return true;
+    }
+
+    if (isServerPullSuppressed()) {
+        await deleteServerCartIds(
+            parsed.items
+                .map((item) => item.serverItemId)
+                .filter((id): id is number => id != null),
+        );
+        return false;
     }
 
     useCartStore.getState().replaceItems(parsed.items, {
@@ -168,15 +179,34 @@ export function syncRemoveToServer(item: CartItem): void {
     })().catch(() => undefined);
 }
 
-/** Skip GET→replace hydration briefly after an order so stale server cart cannot refill. */
+/** Skip GET→replace hydration after an order so stale server cart cannot refill. */
+const SUPPRESS_STORAGE_KEY = "tikmool_suppress_cart_pull_until";
 let suppressServerPullUntil = 0;
 
+function readPersistedSuppressUntil(): number {
+    try {
+        const raw = sessionStorage.getItem(SUPPRESS_STORAGE_KEY);
+        const parsed = raw ? Number(raw) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+        return 0;
+    }
+}
+
 export function suppressCartServerPull(ms = 30000): void {
-    suppressServerPullUntil = Date.now() + Math.max(0, ms);
+    const until = Date.now() + Math.max(0, ms);
+    suppressServerPullUntil = until;
+    try {
+        sessionStorage.setItem(SUPPRESS_STORAGE_KEY, String(until));
+    } catch {
+        /* sessionStorage unavailable */
+    }
 }
 
 function isServerPullSuppressed(): boolean {
-    return Date.now() < suppressServerPullUntil;
+    const until = Math.max(suppressServerPullUntil, readPersistedSuppressUntil());
+    suppressServerPullUntil = until;
+    return Date.now() < until;
 }
 
 async function deleteServerCartIds(ids: number[]): Promise<void> {
@@ -189,8 +219,8 @@ async function deleteServerCartIds(ids: number[]): Promise<void> {
 
 /**
  * Wipe the account cart on the server.
- * Prefer `DELETE /user/cart`, then fall back to per-line deletes + verify GET.
- * After a placed order the backend also empties the cart; this is the client backup.
+ * Prefer `DELETE /user/cart`, then always verify via GET and delete leftovers.
+ * After a placed order the backend may also empty the cart; this is the client backup.
  */
 export async function clearServerCartSafe(items?: CartItem[]): Promise<void> {
     const token = useAuthStore.getState().token;
@@ -199,7 +229,6 @@ export async function clearServerCartSafe(items?: CartItem[]): Promise<void> {
     try {
         try {
             await clearCartOnServer();
-            return;
         } catch {
             /* fall through to per-item deletes */
         }
@@ -207,10 +236,12 @@ export async function clearServerCartSafe(items?: CartItem[]): Promise<void> {
         const localIds = snapshot
             .map((item) => item.serverItemId)
             .filter((id): id is number => id != null);
-        await deleteServerCartIds(localIds);
+        if (localIds.length > 0) {
+            await deleteServerCartIds(localIds);
+        }
 
-        for (let pass = 0; pass < 2; pass++) {
-            const payload = await getCart<unknown>();
+        for (let pass = 0; pass < 3; pass++) {
+            const payload = await getCart<unknown>().catch(() => null);
             if (payload == null) return;
             const remaining = parseServerCart(payload)
                 .items.map((item) => item.serverItemId)
@@ -260,11 +291,23 @@ export async function syncCartWithServer(
     }
 
     try {
+        if (isServerPullSuppressed()) return;
         const payload = await getCart<unknown>();
+        // Order may have completed while GET was in flight — do not refill.
+        if (isServerPullSuppressed()) return;
         if (payload == null) return;
         const parsed = parseServerCart(payload);
 
         if (parsed.items.length > 0) {
+            if (isServerPullSuppressed()) {
+                // Post-order: wipe leftovers instead of refilling the local cart.
+                await deleteServerCartIds(
+                    parsed.items
+                        .map((item) => item.serverItemId)
+                        .filter((id): id is number => id != null),
+                );
+                return;
+            }
             useCartStore.getState().replaceItems(parsed.items, {
                 cart_type: parsed.cart_type ?? "default",
             });
@@ -272,6 +315,9 @@ export async function syncCartWithServer(
         }
 
         // Server empty: seed from this device when we still have local lines.
+        // Skip after checkout so ordered items are not written back.
+        if (isServerPullSuppressed()) return;
+        if (useCartStore.getState().items.length === 0) return;
         const bodies = localDefaultBodies();
         if (bodies.length === 0) return;
         await postCartItems(bodies);

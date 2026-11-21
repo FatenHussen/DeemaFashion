@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import Button from "@/shared/ui/Button";
 import FormattedPrice from "@/shared/component/FormattedPrice";
 import { cn } from "@/shared/lib/utils";
+import { formatCityTaxLabel } from "../utils/taxDisplay";
 import type { OrderSummary } from "../types";
 
 type CartSummaryStatus = "loading" | "no-address" | "ready";
@@ -16,7 +17,6 @@ type CartSummaryProps = {
     isLoading?: boolean;
     status?: CartSummaryStatus;
     onAddAddress?: () => void;
-    /** `false` disables checkout and shows `checkoutMessage` as returned by the API. */
     canCheckout?: boolean;
     checkoutMessage?: string | null;
 };
@@ -71,15 +71,34 @@ export default function CartSummary({
 
     return (
         <SummaryShell isRTL={isRTL}>
-            <div className="p-5 sm:p-6 space-y-5">
-                <div className="flex items-baseline justify-between gap-3">
+            <div className="p-5 sm:p-6 space-y-4">
+                {summary.tax ? (
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-custom-secondary">
+                            {formatCityTaxLabel(t("cart.tax", "Tax"), summary.taxRate)}
+                        </span>
+                        <FormattedPrice
+                            value={summary.tax}
+                            layout="inline"
+                            className="font-semibold tabular-nums text-custom-primary"
+                        />
+                    </div>
+                ) : null}
+
+                <div
+                    className="flex items-baseline justify-between gap-3 rounded-xl px-4 py-3"
+                    style={{
+                        backgroundColor:
+                            "color-mix(in srgb, var(--color-api-second) 10%, var(--color-bg-card))",
+                    }}
+                >
                     <span className="text-base font-bold text-[color:var(--color-text)]">
-                        {t("cart.grandTotal", "Total")}
+                        {t("cart.grandTotal", "Grand total")}
                     </span>
                     <FormattedPrice
                         value={summary.total}
                         layout="inline"
-                        className="text-xl font-extrabold tabular-nums text-[color:var(--color-main)]"
+                        className="text-xl font-extrabold tabular-nums text-[color:var(--color-api-second)]"
                     />
                 </div>
 
@@ -94,7 +113,7 @@ export default function CartSummary({
                     fullWidth
                     onClick={onCheckout}
                     disabled={!canCheckout}
-                    className="group !bg-[color:var(--color-api-second)] hover:!bg-[color:var(--color-api-second-hover)] disabled:!opacity-60 disabled:pointer-events-none text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+                    className="group !bg-[color:var(--color-api-second)] hover:!bg-[color:var(--color-api-second-hover)] disabled:!opacity-60 disabled:pointer-events-none text-white font-semibold rounded-xl flex items-center justify-center gap-2 min-h-[48px]"
                 >
                     <span>
                         {t(

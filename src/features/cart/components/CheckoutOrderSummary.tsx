@@ -24,9 +24,16 @@ type CheckoutOrderSummaryProps = {
     isLoading?: boolean;
     /** Review step: the total once, with no breakdown or delivery line. */
     totalOnly?: boolean;
+    /** Always show the 7 WEB_CART_CHECKOUT detail lines (use — when empty). */
+    alwaysShowSpecLines?: boolean;
     backHref?: string;
     backLabel?: string;
 };
+
+function dashOrValue(value?: string | null) {
+    if (value == null || value === "" || isZeroMoney(value)) return "—";
+    return value;
+}
 
 export default function CheckoutOrderSummary({
     summary,
@@ -35,6 +42,7 @@ export default function CheckoutOrderSummary({
     canContinue = true,
     isLoading = false,
     totalOnly = false,
+    alwaysShowSpecLines = false,
     backHref = "/cart",
     backLabel,
 }: CheckoutOrderSummaryProps) {
@@ -69,7 +77,7 @@ export default function CheckoutOrderSummary({
                 {!totalOnly && (
                 <div className="flex items-baseline justify-between gap-3 px-4 pt-5 sm:px-5">
                     <h2 className="text-base font-bold text-[color:var(--color-text)]">
-                        {t("checkout.orderSummary")}
+                        {t("checkout.orderDetails", "Order details")}
                     </h2>
                     {totalItems > 0 && (
                         <span className="text-xs text-custom-secondary tabular-nums">
@@ -83,84 +91,179 @@ export default function CheckoutOrderSummary({
 
                 {!totalOnly && (
                 <div className="space-y-2.5 px-4 py-4 text-sm sm:px-5">
-                    {showItemsTotal && (
-                        <SummaryRow
-                            label={t("cart.itemsTotal")}
-                            value={summary.itemsTotal}
-                        />
-                    )}
-                    <SummaryRow
-                        label={t("checkout.subtotal")}
-                        value={summary.subtotal}
-                    />
-                    {summary.deliveryFees && summary.deliveryFees !== "-" && (
-                        <SummaryRow
-                            label={t("checkout.deliveryFees")}
-                            value={
-                                shippingIsFree
-                                    ? t("cart.freeDelivery")
-                                    : summary.deliveryFees
-                            }
-                            accent={shippingIsFree ? "success" : undefined}
-                        />
-                    )}
-                    {summary.tax ? (
-                        <SummaryRow
-                            label={formatCityTaxLabel(
-                                t("cart.tax", "Tax"),
-                                summary.taxRate,
+                    {alwaysShowSpecLines ? (
+                        <>
+                            <SummaryRow
+                                label={t(
+                                    "checkout.orderedFromStore",
+                                    "Requested store",
+                                )}
+                                value={
+                                    summary.storeNames &&
+                                    summary.storeNames.length > 0
+                                        ? summary.storeNames.join(" · ")
+                                        : "—"
+                                }
+                            />
+                            <SummaryRow
+                                label={t(
+                                    "checkout.partialAmount",
+                                    "Subtotal",
+                                )}
+                                value={summary.subtotal}
+                            />
+                            <SummaryRow
+                                label={formatCityTaxLabel(
+                                    t("cart.tax", "Tax"),
+                                    summary.taxRate,
+                                )}
+                                value={summary.tax || "—"}
+                            />
+                            <SummaryRow
+                                label={t(
+                                    "checkout.pointsBalanceUsed",
+                                    "Balance used from points",
+                                )}
+                                value={dashOrValue(summary.pointsUsed)}
+                                accent={
+                                    !isZeroMoney(summary.pointsUsed)
+                                        ? "success"
+                                        : undefined
+                                }
+                            />
+                            <SummaryRow
+                                label={t(
+                                    "checkout.codeDiscount",
+                                    "Code discount",
+                                )}
+                                value={dashOrValue(summary.couponDiscount)}
+                                accent={
+                                    !isZeroMoney(summary.couponDiscount)
+                                        ? "success"
+                                        : undefined
+                                }
+                            />
+                            <SummaryRow
+                                label={t("checkout.deliveryFees")}
+                                value={
+                                    shippingIsFree
+                                        ? t("cart.freeDelivery")
+                                        : dashOrValue(summary.deliveryFees)
+                                }
+                                accent={shippingIsFree ? "success" : undefined}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            {summary.storeNames &&
+                            summary.storeNames.length > 0 ? (
+                                <SummaryRow
+                                    label={t(
+                                        "checkout.orderedFromStore",
+                                        "Store",
+                                    )}
+                                    value={summary.storeNames.join(" · ")}
+                                />
+                            ) : null}
+                            {showItemsTotal && (
+                                <SummaryRow
+                                    label={t("cart.itemsTotal")}
+                                    value={summary.itemsTotal}
+                                />
                             )}
-                            value={summary.tax}
-                        />
-                    ) : null}
-                    {summary.productDiscount &&
-                        !isZeroMoney(summary.productDiscount) && (
                             <SummaryRow
-                                label={t("cart.productDiscount")}
-                                value={summary.productDiscount}
-                                accent="success"
+                                label={t("checkout.subtotal")}
+                                value={summary.subtotal}
                             />
-                        )}
-                    {summary.storeDiscounts &&
-                        !isZeroMoney(summary.storeDiscounts) && (
-                            <SummaryRow
-                                label={t("cart.discounts")}
-                                value={summary.storeDiscounts}
-                                accent="success"
-                            />
-                        )}
-                    {summary.couponDiscount &&
-                        !isZeroMoney(summary.couponDiscount) && (
-                            <SummaryRow
-                                label={t("checkout.couponDiscount")}
-                                value={summary.couponDiscount}
-                                accent="success"
-                            />
-                        )}
-                    {summary.subscriptionDiscount &&
-                        !isZeroMoney(summary.subscriptionDiscount) && (
-                            <SummaryRow
-                                label={t("cart.subscriptionDiscount")}
-                                value={summary.subscriptionDiscount}
-                                accent="success"
-                            />
-                        )}
-                    {summary.promotionDiscount &&
-                        !isZeroMoney(summary.promotionDiscount) && (
-                            <SummaryRow
-                                label={t("cart.promotionDiscount")}
-                                value={summary.promotionDiscount}
-                                accent="success"
-                            />
-                        )}
-                    {summary.rewardLines?.map((line) => (
-                        <SummaryRow
-                            key={line.id}
-                            label={line.label}
-                            value={line.value}
-                            accent="success"
-                        />
-                    ))}
+                            {summary.tax ? (
+                                <SummaryRow
+                                    label={formatCityTaxLabel(
+                                        t("cart.tax", "Tax"),
+                                        summary.taxRate,
+                                    )}
+                                    value={summary.tax}
+                                />
+                            ) : null}
+                            {summary.pointsUsed &&
+                            !isZeroMoney(summary.pointsUsed) ? (
+                                <SummaryRow
+                                    label={t(
+                                        "checkout.pointsBalanceUsed",
+                                        "Balance used from points",
+                                    )}
+                                    value={summary.pointsUsed}
+                                    accent="success"
+                                />
+                            ) : null}
+                            {summary.couponDiscount &&
+                                !isZeroMoney(summary.couponDiscount) && (
+                                    <SummaryRow
+                                        label={t(
+                                            "checkout.codeDiscount",
+                                            "Code discount",
+                                        )}
+                                        value={summary.couponDiscount}
+                                        accent="success"
+                                    />
+                                )}
+                            {summary.productDiscount &&
+                                !isZeroMoney(summary.productDiscount) && (
+                                    <SummaryRow
+                                        label={t("cart.productDiscount")}
+                                        value={summary.productDiscount}
+                                        accent="success"
+                                    />
+                                )}
+                            {summary.storeDiscounts &&
+                                !isZeroMoney(summary.storeDiscounts) && (
+                                    <SummaryRow
+                                        label={t("cart.discounts")}
+                                        value={summary.storeDiscounts}
+                                        accent="success"
+                                    />
+                                )}
+                            {summary.subscriptionDiscount &&
+                                !isZeroMoney(summary.subscriptionDiscount) && (
+                                    <SummaryRow
+                                        label={t("cart.subscriptionDiscount")}
+                                        value={summary.subscriptionDiscount}
+                                        accent="success"
+                                    />
+                                )}
+                            {summary.promotionDiscount &&
+                                !isZeroMoney(summary.promotionDiscount) && (
+                                    <SummaryRow
+                                        label={t("cart.promotionDiscount")}
+                                        value={summary.promotionDiscount}
+                                        accent="success"
+                                    />
+                                )}
+                            {summary.rewardLines?.map((line) => (
+                                <SummaryRow
+                                    key={line.id}
+                                    label={line.label}
+                                    value={line.value}
+                                    accent="success"
+                                />
+                            ))}
+                            {summary.deliveryFees &&
+                                summary.deliveryFees !== "-" && (
+                                    <SummaryRow
+                                        label={t("checkout.deliveryFees")}
+                                        value={
+                                            shippingIsFree
+                                                ? t("cart.freeDelivery")
+                                                : summary.deliveryFees
+                                        }
+                                        accent={
+                                            shippingIsFree
+                                                ? "success"
+                                                : undefined
+                                        }
+                                    />
+                                )}
+                        </>
+                    )}
                 </div>
                 )}
 
@@ -180,7 +283,9 @@ export default function CheckoutOrderSummary({
                 <div className={cn("px-4 pb-5 sm:px-5", totalOnly && !hasRewardLines && "pt-5")}>
                     <div className="mb-4 flex items-baseline justify-between gap-3 border-t border-custom-primary pt-4">
                         <span className="text-base font-bold text-[color:var(--color-text)]">
-                            {t(totalOnly ? "checkout.total" : "checkout.totalToPay")}
+                            {totalOnly
+                                ? t("checkout.total", "Total")
+                                : t("checkout.grandTotal", "Grand total")}
                         </span>
                         <FormattedPrice
                             value={summary.total}

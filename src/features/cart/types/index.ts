@@ -610,6 +610,8 @@ export type CheckoutOrderSummary = {
  /** Percent label such as `10%`. Omitted for fixed city tax. */
  taxRate?: string;
  pointsUsed?: string;
+ /** Store(s) this order is from — shown in payment/delivery order details. */
+ storeNames?: string[];
  total: string;
  numOfItems?: number;
  pointsEarned?: number;

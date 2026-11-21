@@ -3,6 +3,7 @@ import ProgressIndicator from "./ProgressIndicator";
 import type { ProgressStep } from "./ProgressIndicator";
 
 type CheckoutProgressIndicatorProps = {
+    /** `review` is treated as checkout (2-step flow; no separate review page). */
     currentStep?: "cart" | "checkout" | "review";
     className?: string;
 };
@@ -20,18 +21,14 @@ export default function CheckoutProgressIndicator({
         },
         {
             id: "checkout",
-            label: t("checkout.paymentStep", "Payment"),
-        },
-        {
-            id: "review",
-            label: t("checkout.reviewConfirm", "Review & confirm"),
+            label: t("checkout.paymentAndDelivery", "Payment and delivery"),
         },
     ];
 
     const stepIndexMap: Record<string, number> = {
         cart: 0,
         checkout: 1,
-        review: 2,
+        review: 1,
     };
 
     return (

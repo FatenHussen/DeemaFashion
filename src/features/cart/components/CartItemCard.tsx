@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/shared/lib/utils";
-import PriceBlock from "@/shared/component/PriceBlock";
+import FormattedPrice from "@/shared/component/FormattedPrice";
 import { toNum } from "../utils";
 import type { CartItem } from "../types";
 
@@ -18,6 +18,7 @@ type CartItemCardProps = {
     displayName?: string;
     displayVariant?: string[];
     displayStore?: string;
+    displaySku?: string | null;
     productHref?: string;
     freeQuantity?: number;
     isExcludedFromCoupon?: boolean;
@@ -36,6 +37,7 @@ export default function CartItemCard({
     displayName,
     displayVariant,
     displayStore,
+    displaySku,
     productHref,
     freeQuantity = 0,
     isExcludedFromCoupon = false,
@@ -53,44 +55,18 @@ export default function CartItemCard({
             ? previewPrices?.get(item.shop_product_variant_id)
             : undefined);
     const priceNum = preview?.price ?? (item.priceNumeric ?? toNum(item.price));
-    const priceBeforeNum =
-        preview?.priceBeforeDiscount != null &&
-        preview.priceBeforeDiscount > (preview.price ?? 0)
-            ? preview.priceBeforeDiscount
-            : item.originalPrice
-              ? toNum(item.originalPrice)
-              : undefined;
-    const hasUnitDiscount =
-        priceBeforeNum != null && priceBeforeNum > priceNum;
     const unitPrice = formatPrice(priceNum);
-    const lineTotal = priceNum * item.quantity;
-    const lineOriginal =
-        hasUnitDiscount && priceBeforeNum != null
-            ? priceBeforeNum * item.quantity
-            : undefined;
-    const savedAmount =
-        lineOriginal != null ? lineOriginal - lineTotal : 0;
-    const displayLineTotal = formatPrice(lineTotal);
-    const displayLineOriginal =
-        lineOriginal != null ? formatPrice(lineOriginal) : undefined;
+    const lineTotal = formatPrice(priceNum * item.quantity);
     const variantText = displayVariant?.length
         ? displayVariant.join(" · ")
         : item.selectedAttributes && Object.keys(item.selectedAttributes).length > 0
-            ? Object.values(item.selectedAttributes).join(" · ")
-            : undefined;
+          ? Object.values(item.selectedAttributes).join(" · ")
+          : undefined;
     const storeName = displayStore ?? item.store;
     const imageSrc = image || item.image;
     const title = displayName ?? item.name;
     const lineNote = note ?? item.note;
-    const sku = item.sku?.trim();
-    const modelNumber = item.modelNumber?.trim();
-    const metaLine = [
-        item.productId != null ? `#${item.productId}` : null,
-        sku || null,
-        modelNumber || null,
-    ]
-        .filter(Boolean)
-        .join(" · ");
+    const sku = (displaySku ?? item.sku)?.trim();
 
     const handleDecrease = () => {
         onQuantityChange(item.id, Math.max(1, item.quantity - 1));
@@ -106,12 +82,9 @@ export default function CartItemCard({
     );
 
     return (
-        <article
-            className="px-4 py-4 sm:px-5 sm:py-5"
-            dir={isRTL ? "rtl" : "ltr"}
-        >
+        <article className="px-4 py-4 sm:px-5 sm:py-5" dir={isRTL ? "rtl" : "ltr"}>
             <div className="flex gap-3 sm:gap-4">
-                <div className="h-[72px] w-[72px] sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-custom-muted ring-1 ring-[color:color-mix(in_srgb,var(--color-border-primary)_80%,transparent)]">
+                <div className="h-[72px] w-[72px] sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-xl bg-custom-muted ring-1 ring-[color:color-mix(in_srgb,var(--color-border-primary)_80%,transparent)]">
                     {imageSrc ? (
                         <img
                             src={imageSrc}
@@ -120,7 +93,7 @@ export default function CartItemCard({
                         />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                            <span className="text-custom-tertiary text-[11px]">
+                            <span className="text-[11px] text-custom-tertiary">
                                 {t("cart.noImage", "No image")}
                             </span>
                         </div>
@@ -129,7 +102,7 @@ export default function CartItemCard({
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                             {productHref ? (
                                 <Link to={productHref} className={titleClassName}>
                                     {title}
@@ -137,32 +110,81 @@ export default function CartItemCard({
                             ) : (
                                 <h3 className={titleClassName}>{title}</h3>
                             )}
-                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-custom-secondary">
-                                {storeName && <span>{storeName}</span>}
-                                {storeName && variantText && (
-                                    <span aria-hidden className="text-custom-tertiary">
-                                        ·
-                                    </span>
-                                )}
-                                {variantText && <span>{variantText}</span>}
-                            </div>
-                            {metaLine ? (
-                                <p className="mt-0.5 hidden text-[11px] text-custom-tertiary sm:block" dir="ltr">
-                                    {metaLine}
+
+                            {storeName ? (
+                                <p className="mt-1 text-xs text-custom-secondary">
+                                    {storeName}
+                                </p>
+                            ) : null}
+
+                            {sku ? (
+                                <p className="mt-1 text-xs text-custom-tertiary" dir="ltr">
+                                    <span className="text-custom-secondary">
+                                        {t("cart.sku", "SKU")}
+                                    </span>{" "}
+                                    {sku}
+                                </p>
+                            ) : item.productId != null ? (
+                                <p className="mt-1 text-xs text-custom-tertiary">
+                                    {t("cart.productNumber", "Product number")}{" "}
+                                    {item.productId}
+                                </p>
+                            ) : null}
+
+                            {variantText ? (
+                                <p className="mt-1 text-xs text-custom-secondary">
+                                    {variantText}
                                 </p>
                             ) : null}
                         </div>
 
-                        {canEditQuantity && (
-                            <button
-                                type="button"
-                                onClick={() => onRemove(item.id)}
-                                className="shrink-0 rounded-lg p-1.5 text-custom-tertiary transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-error)_10%,transparent)] hover:text-[color:var(--color-error)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--color-error)_35%,transparent)]"
-                                aria-label={t("cart.removeItem")}
-                            >
-                                <HiTrash className="h-4 w-4" />
-                            </button>
-                        )}
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                            {canEditQuantity ? (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(item.id)}
+                                    className="rounded-lg p-1.5 text-custom-tertiary transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-error)_10%,transparent)] hover:text-[color:var(--color-error)]"
+                                    aria-label={t("cart.removeItem")}
+                                >
+                                    <HiTrash className="h-4 w-4" />
+                                </button>
+                            ) : null}
+
+                            <div className="min-w-[7.5rem] space-y-1 text-end">
+                                <div>
+                                    <p className="text-[11px] text-custom-secondary">
+                                        {t("cart.unitPrice", "Unit price")}
+                                    </p>
+                                    <FormattedPrice
+                                        value={unitPrice}
+                                        layout="inline"
+                                        className="text-sm font-semibold tabular-nums text-custom-primary"
+                                    />
+                                </div>
+                                <p
+                                    className="text-xs tabular-nums text-custom-secondary"
+                                    dir="ltr"
+                                >
+                                    <FormattedPrice
+                                        value={unitPrice}
+                                        layout="inline"
+                                        className="tabular-nums"
+                                    />
+                                    <span className="mx-1">×</span>
+                                    <span>{item.quantity}</span>
+                                </p>
+                                <div>
+                                    <p className="text-[11px] text-custom-secondary">
+                                        {t("cart.lineTotal", "Total")}
+                                    </p>
+                                    <FormattedPrice
+                                        value={lineTotal}
+                                        layout="inline"
+                                        className="text-sm font-bold tabular-nums text-[color:var(--color-api-second)]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -178,13 +200,19 @@ export default function CartItemCard({
                         )}
                     </div>
 
-                    {lineNote && (
+                    {lineNote ? (
                         <p className="mt-2 text-xs text-custom-secondary">
                             {t("cart.note", "Note")}: {lineNote}
                         </p>
-                    )}
+                    ) : null}
 
-                    <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                    {extrasTotal ? (
+                        <p className="mt-1 text-xs text-custom-secondary">
+                            {t("cart.extras", "Extras")}: {extrasTotal}
+                        </p>
+                    ) : null}
+
+                    <div className="mt-3">
                         <div
                             className="inline-flex items-center rounded-lg border border-custom-primary bg-custom-card"
                             role="group"
@@ -211,29 +239,6 @@ export default function CartItemCard({
                             >
                                 <HiPlus className="h-3.5 w-3.5" />
                             </button>
-                        </div>
-
-                        <div className="text-end">
-                            <PriceBlock
-                                price={displayLineTotal}
-                                originalPrice={displayLineOriginal}
-                                savings={
-                                    savedAmount > 0
-                                        ? `${t("cart.youSave", "You save")} ${formatPrice(savedAmount)}`
-                                        : undefined
-                                }
-                                size="sm"
-                                align="end"
-                            />
-                            <p className="mt-0.5 text-[11px] text-custom-secondary tabular-nums">
-                                {unitPrice}{" "}
-                                {t("cart.each", "each")}
-                            </p>
-                            {extrasTotal && (
-                                <p className="text-[11px] text-custom-secondary">
-                                    {t("cart.extras", "Extras")}: {extrasTotal}
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

@@ -174,7 +174,8 @@ export const _OrderApi = {
 
  const res = await _axios.post<OrderPreviewResponse | { data: OrderPreviewResponse }>(
  apiRoutes.orders.preview,
- body
+ body,
+ { skipSuccessToast: true },
  );
  const raw = res.data as { data?: OrderPreviewResponse } & OrderPreviewResponse;
  const result = (raw?.data ?? raw) as OrderPreviewResponse;
@@ -427,7 +428,9 @@ export const _OrderApi = {
  if (payload.promotion_id != null)
  body.promotion_id = payload.promotion_id;
 
- const res = await _axios.post(apiRoutes.orders.create, body);
+ const res = await _axios.post(apiRoutes.orders.create, body, {
+  skipSuccessToast: true,
+ });
  const raw = res.data as Record<string, unknown>;
  const data = (raw?.data ?? raw) as Record<string, unknown>;
  const order = data?.order as Record<string, unknown> | undefined;
@@ -469,7 +472,8 @@ export const _OrderApi = {
  ): Promise<{ coupon: CouponPreviewResponse }> => {
  const res = await _axios.post<{ coupon: CouponPreviewResponse }>(
  apiRoutes.orders.couponPreview,
- { coupon, items }
+ { coupon, items },
+ { skipSuccessToast: true },
  );
  return res.data;
  },
