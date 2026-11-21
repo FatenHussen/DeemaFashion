@@ -1,3 +1,5 @@
+import type { ApiDualCurrencies } from "@/shared/lib/formatApiPrice";
+
 export type TrackOrderStatus ="pending"|"preparing"|"out_delivery"|"delivered";
 
 export type Driver = {
@@ -121,6 +123,19 @@ export interface TrackOrderApiData {
  subtotal: number;
  total: number;
  total_quantity: number;
+ /** City tax amount saved on the order. Later city edits do not change this. */
+ tax_amount?: number | string | null;
+ tax_amount_formatted?: string | null;
+ /** USD and SYP amounts already converted with the dashboard exchange rate. */
+ tax_amount_currencies?: ApiDualCurrencies | null;
+ /** Alias for tax_amount on some API versions. */
+ tax?: number | string | null;
+ /** `percent` or `fixed`. Missing on older orders. */
+ tax_type?: string | null;
+ /** Percent or the fixed amount saved with the order. Display uses `tax_amount`. */
+ tax_value?: number | string | null;
+ /** City tax rate label, e.g. `"10%"`. */
+ tax_rate?: number | string | null;
  basket_discount?: number;
  coupon_discount?: number | null;
  assigned_by: string | null;
