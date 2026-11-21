@@ -1,87 +1,102 @@
-import { Link } from"react-router-dom";
-import { paths } from"@/app/routes/path/paths";
-import { continueShoppingPath } from"@/shared/lib/shoppingResume";
-import { HiArrowLeft } from"react-icons/hi";
-import { useTranslation } from"react-i18next";
-import { useLanguage } from"@/context/LanguageContext";
-import { cn } from"@/shared/lib/utils";
-import Button from"@/shared/ui/Button";
-import CartItemTableRow from"./CartItemTableRow";
-import type { CartItem } from"../types";
+import { Link } from "react-router-dom";
+import { HiPlus } from "react-icons/hi";
+import { useTranslation } from "react-i18next";
+import { paths } from "@/app/routes/path/paths";
+import { continueShoppingPath } from "@/shared/lib/shoppingResume";
+import {
+    GradientTable,
+    GradientTableHeader,
+    GradientTableHeaderCell,
+    GradientTableBody,
+} from "@/shared/component/table";
+import CartItemTableRow from "./CartItemTableRow";
+import type { CartItem } from "../types";
+
+type RowExtras = {
+    previewPrice?: { price: number; priceBeforeDiscount?: number };
+    displayName?: string;
+    displayVariant?: string[];
+    displaySku?: string | null;
+    productHref?: string;
+};
 
 type CartTableProps = {
- items: CartItem[];
- onQuantityChange: (itemId: number | string, quantity: number) => void;
- onRemove: (itemId: number | string) => void;
- onMoveToWishlist?: (itemId: number | string) => void;
- onUpdateCart?: () => void;
+    items: CartItem[];
+    canEditQuantity?: boolean;
+    getRowExtras?: (item: CartItem) => RowExtras;
+    onQuantityChange: (itemId: number | string, quantity: number) => void;
+    onRemove: (itemId: number | string) => void;
 };
 
 export default function CartTable({
- items,
- onQuantityChange,
- onRemove,
- onMoveToWishlist,
- onUpdateCart,
+    items,
+    canEditQuantity = true,
+    getRowExtras,
+    onQuantityChange,
+    onRemove,
 }: CartTableProps) {
- const { t } = useTranslation();
- const { isRTL } = useLanguage();
+    const { t } = useTranslation();
 
- return (
- <div className="bg-custom-primary rounded-2xl border border-custom-secondary shadow-sm overflow-hidden"dir={isRTL ?"rtl":"ltr"}>
- {/* Table */}
- <div className="overflow-x-auto">
- <table className="w-full">
- <thead>
- <tr className="border-b border-custom-secondary bg-blue-off">
- <th className={cn(isRTL ?"text-right":"text-left","py-4 px-4 text-sm font-semibold text-custom-primary")}>
- {t("cart.product")}
- </th>
- <th className={cn(isRTL ?"text-left":"text-right","py-4 px-4 text-sm font-semibold text-custom-primary")}>
- {t("checkout.price")}
- </th>
- <th className="text-center py-4 px-4 text-sm font-semibold text-custom-primary">
- {t("cart.quantity")}
- </th>
- <th className={cn(isRTL ?"text-left":"text-right","py-4 px-4 text-sm font-semibold text-custom-primary")}>
- {t("cart.subtotal")}
- </th>
- <th className="w-16 py-4 px-4"></th>
- </tr>
- </thead>
- <tbody>
- {items.map((item) => (
- <CartItemTableRow
- key={item.id}
- item={item}
- onQuantityChange={onQuantityChange}
- onRemove={onRemove}
- onMoveToWishlist={onMoveToWishlist}
- />
- ))}
- </tbody>
- </table>
- </div>
+    return (
+        <div className="space-y-3">
+            <GradientTable showTitle={false}>
+                <GradientTableHeader>
+                    <GradientTableHeaderCell align="left" isFirst>
+                        {t("cart.product")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="center">
+                        {t("cart.variants", "Variants")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="center">
+                        {t("cart.sku", "SKU")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="right">
+                        {t("checkout.price")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="center">
+                        {t("cart.quantity")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="right">
+                        {t("cart.subtotal")}
+                    </GradientTableHeaderCell>
+                    <GradientTableHeaderCell align="center" isLast className="w-12">
+                        <span className="sr-only">{t("cart.removeItem")}</span>
+                    </GradientTableHeaderCell>
+                </GradientTableHeader>
+                <GradientTableBody>
+                    {items.map((item, index) => {
+                        const extras = getRowExtras?.(item) ?? {};
+                        return (
+                            <CartItemTableRow
+                                key={item.id}
+                                item={item}
+                                previewPrice={extras.previewPrice}
+                                displayName={extras.displayName}
+                                displayVariant={extras.displayVariant}
+                                displaySku={extras.displaySku}
+                                productHref={extras.productHref}
+                                canEditQuantity={canEditQuantity}
+                                isLast={index === items.length - 1}
+                                onQuantityChange={onQuantityChange}
+                                onRemove={onRemove}
+                            />
+                        );
+                    })}
+                </GradientTableBody>
+            </GradientTable>
 
- {/* Footer Actions */}
- <div className="px-6 py-4 border-t border-custom-secondary flex items-center justify-between">
- <Link
- to={continueShoppingPath(paths.client.home)}
- state={{ restoreShoppingScroll: true }}
- className="inline-flex items-center gap-2 text-custom-accent hover:underline font-medium"
- >
- <HiArrowLeft className="w-5 h-5"/>
- {t("cart.returnToShop")}
- </Link>
- <Button
- type="button"
- variant="outline"
- onClick={onUpdateCart}
- className="bg-custom-tertiary hover:bg-custom-hover"
- >
- {t("cart.updateCart")}
- </Button>
- </div>
- </div>
- );
+            {canEditQuantity ? (
+                <div className="flex justify-start">
+                    <Link
+                        to={continueShoppingPath(paths.client.home)}
+                        state={{ restoreShoppingScroll: true }}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-custom-primary bg-custom-card px-4 py-2 text-sm font-medium text-custom-primary transition-colors hover:bg-custom-hover"
+                    >
+                        <HiPlus className="h-4 w-4" />
+                        {t("cart.addProducts", "Add products")}
+                    </Link>
+                </div>
+            ) : null}
+        </div>
+    );
 }
