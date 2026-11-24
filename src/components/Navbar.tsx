@@ -280,28 +280,25 @@ export default function Navbar() {
             >
                 <div className="navbar-surface-top w-full">
                 <div className={`${HEADER_MAX} overflow-x-hidden`}>
-                    <div className="navbar-top-row flex min-h-[60px] min-w-0 items-center gap-2 py-3 sm:min-h-[64px] sm:gap-3 md:min-h-[72px] lg:gap-6 xl:gap-8 2xl:gap-10">
+                    <div className="navbar-top-row flex min-h-[72px] min-w-0 items-center gap-2 py-3.5 sm:min-h-[80px] sm:gap-3 sm:py-4 md:min-h-[88px] lg:gap-6 xl:gap-8 2xl:gap-10">
                         <div className="flex min-w-0 shrink-0 items-center gap-5 lg:gap-6 xl:gap-8">
                             <Link
                                 to={paths.client.home}
-                                className="flex shrink-0 items-center gap-2.5 sm:gap-3"
+                                className="flex shrink-0 items-center"
                                 aria-label="Deema Fashion Home"
                             >
                                 {!logoError ? (
                                     <img
-                                        src="/images/shared/favicon.png"
+                                        src="/images/shared/logo.png"
                                         alt="Deema Fashion"
-                                        className="h-11 w-11 shrink-0 rounded-xl object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                                        className="h-16 w-auto max-w-[176px] shrink-0 object-contain sm:h-[4.5rem] sm:max-w-[200px] md:h-20 md:max-w-[228px]"
                                         onError={() => setLogoError(true)}
                                     />
                                 ) : (
-                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary sm:h-12 sm:w-12 md:h-14 md:w-14">
-                                        <span className="text-lg font-bold text-white md:text-xl">D</span>
-                                    </div>
+                                    <span className="brand-display text-[1.5rem] font-semibold tracking-[0.02em] text-[#5A3A2E] md:text-[1.75rem] dark:text-[#D4B39A]">
+                                        Deema Fashion
+                                    </span>
                                 )}
-                                <span className="hidden bg-gradient-to-b from-[#a020f0] to-[#ff1493] bg-clip-text text-lg font-bold tracking-tight text-transparent sm:inline md:text-xl">
-                                    Deema Fashion
-                                </span>
                             </Link>
 
                         {/* Delivery Address - Hidden on mobile, shown on lg+ */}

@@ -10,6 +10,7 @@ type RowExtras = {
     displaySku?: string | null;
     displayStore?: string;
     productHref?: string;
+    image?: string | null;
 };
 
 type CartItemsListProps = {
@@ -52,6 +53,7 @@ export default function CartItemsList({
                                     displayVariant={extras.displayVariant}
                                     displayStore={extras.displayStore}
                                     productHref={extras.productHref}
+                                    image={extras.image}
                                     canEditQuantity={canEditQuantity}
                                     onQuantityChange={onQuantityChange}
                                     onRemove={onRemove}

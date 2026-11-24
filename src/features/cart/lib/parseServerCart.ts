@@ -1,4 +1,5 @@
 import type { CartExtraLine, CartItem, CartType } from "../types";
+import { toStorageUrl } from "@/shared/lib/storageUrl";
 import { toNum } from "../utils";
 import { normalizeCartExtras } from "../utils/cartExtras";
 
@@ -144,22 +145,28 @@ export function mapServerCartItem(raw: unknown, index: number): CartItem | null 
     const lineFormatted =
         lineRaw != null ? readMoneyFormatted(lineRaw, lineAmount) : unitFormatted;
 
+    const product = isRecord(raw.product) ? raw.product : null;
     const serverItemId = readOptionalId(raw.id ?? raw.cart_item_id ?? raw.cart_id);
     const shopId = readOptionalId(
         raw.shop_id ?? raw.store_id ?? (isRecord(raw.shop) ? raw.shop.id : undefined),
     );
-    const productId = readOptionalId(raw.product_id ?? raw.productId);
+    const productId = readOptionalId(
+        raw.product_id ?? raw.productId ?? product?.id,
+    );
     const note = readText(raw.note) || undefined;
     const name =
         readText(raw.product_name) ||
+        (product ? readText(product.name) : "") ||
         readText(raw.name) ||
         readText(raw.title) ||
         "";
-    const image =
+    const imageRaw =
         readText(raw.product_image) ||
+        (product ? readText(product.image) || readText(product.thumbnail) : "") ||
         readText(raw.image) ||
         readText(raw.thumbnail) ||
         "";
+    const image = toStorageUrl(imageRaw) || imageRaw || "";
     const store =
         readText(raw.shop_name) ||
         (isRecord(raw.shop) ? readText(raw.shop.name) : "") ||

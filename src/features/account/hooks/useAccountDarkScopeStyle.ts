@@ -16,15 +16,15 @@ import type { AppSettingsColorPalette } from "../api/settingsApi";
 import { useAppSettings } from "./useAppSettings";
 
 const ACCOUNT_THEME_FALLBACK_DARK: AppSettingsColorPalette = {
-  main_color: "#c720a4",
-  second_color: "#ff1493",
-  text_color: "#e2e8f0",
+  main_color: "#D4B39A",
+  second_color: "#A9B07A",
+  text_color: "#F7F5F2",
 };
 
 const ACCOUNT_THEME_FALLBACK_LIGHT: AppSettingsColorPalette = {
-  main_color: "#c720a4",
-  second_color: "#ff1493",
-  text_color: "#0f172a",
+  main_color: "#5A3A2E",
+  second_color: "#A9B07A",
+  text_color: "#1F1F1F",
 };
 
 function resolveAccountDarkPalette(

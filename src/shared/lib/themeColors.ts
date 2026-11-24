@@ -1,4 +1,5 @@
 import type { AppSettingsColorPalette } from "@/features/account/api/settingsApi";
+import { DEEMA_BRAND } from "./brandColors";
 import { lighten, darken, withAlpha, shade, mixHex, tint } from "./colorUtils";
 
 /** CSS variable name → value */
@@ -10,43 +11,57 @@ export const DARK_SECTION = "#1C1916";
 export const DARK_ELEVATED = "#24201C";
 
 /**
- * Light-mode page chrome.
- * Surfaces stay cream / white with a whisper of `main_color` (60/30/10).
- * Brand colour is reserved for buttons, logo, and status — not page wash.
+ * Clean modern shells — Surface canvas, soft Background wash, white cards.
+ * Avoid stacking Primary/Secondary/Accent browns in large fills.
  */
-/** Neutral light-mode shells — brand colour only as a whisper, not a full wash. */
 const LIGHT_NEUTRAL = {
-  canvas: "#fafbfc",
-  section: "#f4f6f9",
-  muted: "#eef1f5",
-  hover: "#e8ecf1",
-  border: "#e5e7eb",
-  borderSoft: "#eef0f3",
+  canvas: DEEMA_BRAND.surface,
+  section: mixHex(DEEMA_BRAND.surface, DEEMA_BRAND.background, 0.42),
+  muted: mixHex("#FFFFFF", DEEMA_BRAND.background, 0.35),
+  hover: mixHex(DEEMA_BRAND.surface, DEEMA_BRAND.accent, 0.28),
+  border: mixHex("#E8E4DE", DEEMA_BRAND.accent, 0.35),
+  borderSoft: mixHex("#F0EDE8", DEEMA_BRAND.background, 0.4),
 };
 
+/** Static sheet tokens always available to components. */
+export function buildBrandSheetTokens(): CSSVariableMap {
+  return {
+    "--color-brand-primary": DEEMA_BRAND.primary,
+    "--color-brand-secondary": DEEMA_BRAND.secondary,
+    "--color-brand-accent": DEEMA_BRAND.accent,
+    "--color-brand-background": DEEMA_BRAND.background,
+    "--color-brand-surface": DEEMA_BRAND.surface,
+    "--color-brand-highlight": DEEMA_BRAND.highlight,
+    "--color-brand-text": DEEMA_BRAND.text,
+  };
+}
+
 export function buildApiTintedLightSurfaces(main: string, second: string): CSSVariableMap {
-  const brandWhisper = mixHex("#ffffff", tint(main, 0.96), 0.35);
-  const secondWhisper = mixHex(LIGHT_NEUTRAL.section, tint(second, 0.94), 0.2);
+  const brandWhisper = mixHex("#ffffff", tint(main, 0.97), 0.22);
+  const sectionWash = mixHex(LIGHT_NEUTRAL.canvas, DEEMA_BRAND.background, 0.38);
+  const highlightWhisper = mixHex(LIGHT_NEUTRAL.canvas, tint(second, 0.9), 0.18);
 
   return {
+    ...buildBrandSheetTokens(),
     "--color-bg": LIGHT_NEUTRAL.canvas,
     "--color-blue-off": brandWhisper,
-    "--color-blue-very-light": "#fafafa",
+    "--color-blue-very-light": "#FFFFFF",
     "--color-blue-border": LIGHT_NEUTRAL.borderSoft,
-    "--color-bg-primary": "#ffffff",
-    "--color-bg-secondary": secondWhisper,
+    "--color-bg-primary": LIGHT_NEUTRAL.canvas,
+    "--color-bg-secondary": sectionWash,
     "--color-bg-tertiary": LIGHT_NEUTRAL.muted,
     "--color-bg-hover": LIGHT_NEUTRAL.hover,
-    "--color-bg-active": mixHex(LIGHT_NEUTRAL.hover, tint(main, 0.9), 0.12),
+    "--color-bg-active": mixHex(LIGHT_NEUTRAL.hover, tint(main, 0.92), 0.1),
     "--color-bg-light": LIGHT_NEUTRAL.canvas,
     "--color-bg-card": "#ffffff",
     "--color-bg-muted": LIGHT_NEUTRAL.muted,
     "--color-bg-surface": "#ffffff",
     "--color-bg-input": "#ffffff",
-    "--color-bg-accent-soft": withAlpha(main, 0.06),
+    "--color-bg-accent-soft": withAlpha(DEEMA_BRAND.accent, 0.28),
+    "--color-bg-highlight-soft": highlightWhisper,
     "--color-text-inverse": "#ffffff",
     "--color-border-primary": LIGHT_NEUTRAL.border,
-    "--color-border-secondary": "#d1d5db",
+    "--color-border-secondary": mixHex(LIGHT_NEUTRAL.border, DEEMA_BRAND.secondary, 0.15),
     "--color-border-light": LIGHT_NEUTRAL.borderSoft,
     "--color-overlay-brand": withAlpha(darken(main, 12), 0.5),
     "--color-overlay-brand-light": withAlpha(darken(main, 12), 0.25),
@@ -108,44 +123,44 @@ export function buildLightPalette(colors: AppSettingsColorPalette): CSSVariableM
   const second = colors.second_color ?? lighten(main, 16);
 
   return {
-    // ── Direct API values (no API background base) ──
+    // ── Direct API values ──
     "--color-main": main,
     "--color-text": text,
-    /** Accent surface / secondary actions — from API `second_color` */
+    /** Secondary CTA / active contrast — Highlight from brand sheet */
     "--color-api-second": second,
     "--color-api-second-hover": darken(second, 8),
 
-    // ── Brand / Accent — slightly deeper orange for CTAs (not neon wash) ──
-    "--color-primary": darken(main, 6),
-    "--color-primary-light": lighten(main, 4),
-    "--color-primary-dark": darken(main, 14),
-    "--color-secondary": darken(main, 5),
+    // ── Brand hierarchy (Primary for CTAs; Highlight for contrast) ──
+    "--color-primary": main,
+    "--color-primary-light": DEEMA_BRAND.secondary,
+    "--color-primary-dark": darken(main, 10),
+    "--color-secondary": DEEMA_BRAND.accent,
+    "--color-highlight": DEEMA_BRAND.highlight,
     "--color-trust": "#0F766E",
 
-    // ── Derived brand shades ──
-    "--color-blue-light": lighten(main, 12),
+    "--color-blue-light": DEEMA_BRAND.accent,
 
     ...buildApiTintedLightSurfaces(main, second),
 
-    // ── Text (ALL based on text_color directly) ──
+    // ── Text ──
     "--color-text-primary": text,
-    "--color-text-secondary": lighten(text, 12),
-    "--color-text-tertiary": lighten(text, 24),
-    "--color-text-heading": darken(text, 4),
-    "--color-text-muted": lighten(text, 18),
+    "--color-text-secondary": lighten(text, 18),
+    "--color-text-tertiary": lighten(text, 32),
+    "--color-text-heading": text,
+    "--color-text-muted": lighten(text, 26),
 
     // ── Borders ──
-    "--color-border-accent": lighten(main, 8),
-    "--color-border-accent-light": withAlpha(main, 0.35),
+    "--color-border-accent": withAlpha(main, 0.35),
+    "--color-border-accent-light": withAlpha(DEEMA_BRAND.accent, 0.55),
     "--color-border-accent-strong": main,
 
-    // ── Accents (from main_color) ──
+    // ── Accents ──
     "--color-accent-primary": main,
     "--color-accent-primary-hover": darken(main, 8),
-    "--color-accent-light": lighten(main, 10),
-    "--color-accent-light-bg": withAlpha(main, 0.12),
+    "--color-accent-light": DEEMA_BRAND.highlight,
+    "--color-accent-light-bg": withAlpha(DEEMA_BRAND.accent, 0.35),
 
-    // ── Status (semantic — fixed across themes) ──
+    // ── Status ──
     "--color-success": "#16a34a",
     "--color-success-light": "#22c55e",
     "--color-warning": "#f59e0b",
@@ -155,21 +170,20 @@ export function buildLightPalette(colors: AppSettingsColorPalette): CSSVariableM
     "--color-status-error-bg": withAlpha("#ef4444", 0.08),
     "--color-discount": "#22c55e",
     "--color-delete": "#ff4d4f",
-    "--color-gold": "#c5a572",
-    "--color-accent-gold": "#c5a572",
-    "--color-accent-plum": darken(main, 18),
+    "--color-gold": DEEMA_BRAND.accent,
+    "--color-accent-gold": DEEMA_BRAND.accent,
+    "--color-accent-plum": DEEMA_BRAND.secondary,
     "--color-accent-slate": "#64748b",
 
-    // ── Gradient (from main_color) ──
-    "--color-gradient-from": lighten(main, 8),
-    "--color-gradient-to": darken(main, 12),
+    // ── Gradient: Primary → Highlight (modern, not muddy brown→clay) ──
+    "--color-gradient-from": main,
+    "--color-gradient-to": DEEMA_BRAND.highlight,
 
-    // ── Shadow (from main_color) ──
-    "--color-shadow": withAlpha(main, 0.1),
-    "--color-shadow-strong": withAlpha(main, 0.18),
-    "--color-shadow-accent": withAlpha(darken(main, 12), 0.24),
+    // ── Shadow ──
+    "--color-shadow": withAlpha(main, 0.08),
+    "--color-shadow-strong": withAlpha(main, 0.14),
+    "--color-shadow-accent": withAlpha(DEEMA_BRAND.highlight, 0.22),
 
-    // ── Calendar (from main_color) ──
     "--color-calendar-selected": main,
   };
 }
@@ -185,43 +199,38 @@ export function buildDarkPalette(colors: AppSettingsColorPalette): CSSVariableMa
   const second = colors.second_color ?? lighten(main, 10);
 
   return {
-    // ── Direct API values ──
+    ...buildBrandSheetTokens(),
     "--color-main": main,
     "--color-text": text,
     "--color-api-second": second,
     "--color-api-second-hover": darken(second, 10),
 
-    // ── Brand / Accent (from main_color) ──
     "--color-primary": main,
-    "--color-primary-light": lighten(main, 8),
+    "--color-primary-light": second,
     "--color-primary-dark": darken(main, 12),
-    "--color-secondary": text,
+    "--color-secondary": DEEMA_BRAND.secondary,
+    "--color-highlight": DEEMA_BRAND.highlight,
     "--color-trust": "#2DD4BF",
 
-    // ── Derived brand shades ──
-    "--color-blue-light": lighten(main, 12),
+    "--color-blue-light": lighten(main, 8),
 
     ...buildApiTintedDarkSurfaces(main, second),
 
-    // ── Text (ALL based on text_color directly) ──
     "--color-text-primary": text,
     "--color-text-secondary": withAlpha(text, 0.88),
     "--color-text-tertiary": withAlpha(text, 0.72),
     "--color-text-heading": text,
     "--color-text-muted": withAlpha("#E8E4DC", 0.82),
 
-    // ── Borders ──
-    "--color-border-accent": darken(main, 8),
-    "--color-border-accent-light": withAlpha(main, 0.3),
+    "--color-border-accent": withAlpha(main, 0.35),
+    "--color-border-accent-light": withAlpha(second, 0.3),
     "--color-border-accent-strong": main,
 
-    // ── Accents (from main_color) ──
     "--color-accent-primary": main,
     "--color-accent-primary-hover": darken(main, 8),
-    "--color-accent-light": lighten(main, 8),
+    "--color-accent-light": second,
     "--color-accent-light-bg": withAlpha(main, 0.12),
 
-    // ── Status (semantic — fixed across themes) ──
     "--color-success": "#22c55e",
     "--color-success-light": "#4ade80",
     "--color-warning": "#fbbf24",
@@ -231,21 +240,18 @@ export function buildDarkPalette(colors: AppSettingsColorPalette): CSSVariableMa
     "--color-status-error-bg": withAlpha("#f87171", 0.1),
     "--color-discount": "#4ade80",
     "--color-delete": "#f87171",
-    "--color-gold": "#d4b896",
-    "--color-accent-gold": "#c5a572",
-    "--color-accent-plum": lighten(main, 4),
+    "--color-gold": DEEMA_BRAND.accent,
+    "--color-accent-gold": DEEMA_BRAND.accent,
+    "--color-accent-plum": DEEMA_BRAND.secondary,
     "--color-accent-slate": "#94a3b8",
 
-    // ── Gradient (from main_color) ──
     "--color-gradient-from": main,
-    "--color-gradient-to": darken(main, 15),
+    "--color-gradient-to": second,
 
-    // ── Shadow (from main_color) ──
     "--color-shadow": withAlpha(main, 0.12),
     "--color-shadow-strong": withAlpha(main, 0.18),
-    "--color-shadow-accent": withAlpha(main, 0.15),
+    "--color-shadow-accent": withAlpha(second, 0.18),
 
-    // ── Calendar (from main_color) ──
     "--color-calendar-selected": main,
   };
 }

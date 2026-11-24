@@ -317,14 +317,18 @@ function ProductDetails() {
     ]);
 
     const [quantity, setQuantity] = useState(1);
-    const { data: favoriteProducts = [] } = useFavorites("product", false);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(token),
+    );
 
     useEffect(() => {
         setQuantity((q) => Math.min(Math.max(q, 1), Math.max(maxOrderQuantity, 1)));
     }, [maxOrderQuantity, selectedVariant?.id]);
     const toggleFavorite = useToggleFavorite();
     const isFavorite =
-        product?.is_favorite ?? favoriteProducts.some((f) => f.id === productIdNum);
+        favoriteProducts.some((f) => Number(f.id) === productIdNum) ||
+        product?.is_favorite === true;
     const addItem = useCartStore((s) => s.addItem);
 
     /**
@@ -498,7 +502,8 @@ function ProductDetails() {
                 discountLabel: listing.discountLabel,
                 badge: topBadges.length ? topBadges : undefined,
                 bottomBadges: bottomBadges.length ? bottomBadges : undefined,
-                isFavorite: item.is_favorite ?? favoriteIds.includes(item.id),
+                isFavorite:
+                    favoriteIds.includes(item.id) || item.is_favorite === true,
             };
         });
     }, [product?.bought_with, favoriteIds, t, currency]);
@@ -529,8 +534,8 @@ function ProductDetails() {
                     ),
                     bottomBadges: mapApiBottomBadgesToProductCard(pi.bottom_badges),
                     isFavorite:
-                        (p as { is_favorite?: boolean }).is_favorite ??
-                        favoriteIds.includes(p.id),
+                        favoriteIds.includes(p.id) ||
+                        (p as { is_favorite?: boolean }).is_favorite === true,
                 };
             });
     }, [similarProducts, product?.id, t, favoriteIds, currency]);
@@ -561,8 +566,8 @@ function ProductDetails() {
                     ),
                     bottomBadges: mapApiBottomBadgesToProductCard(pi.bottom_badges),
                     isFavorite:
-                        (p as { is_favorite?: boolean }).is_favorite ??
-                        favoriteIds.includes(p.id),
+                        favoriteIds.includes(p.id) ||
+                        (p as { is_favorite?: boolean }).is_favorite === true,
                 };
             });
     }, [sellerProducts, product?.id, t, favoriteIds, currency]);

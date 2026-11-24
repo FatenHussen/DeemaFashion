@@ -98,15 +98,12 @@ export default function Footer() {
                 <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.5fr_repeat(3,1fr)]">
                     {/* Brand hero */}
                     <div className="space-y-5">
-                        <Link to={paths.client.home} className="inline-flex items-center gap-3">
+                        <Link to={paths.client.home} className="inline-flex items-center">
                             <img
-                                src="/images/shared/favicon.png"
+                                src="/images/shared/logo-footer.png"
                                 alt="Deema Fashion"
-                                className="h-12 w-12 rounded-xl object-contain sm:h-14 sm:w-14"
+                                className="h-16 w-auto max-w-[200px] object-contain sm:h-[4.5rem] sm:max-w-[220px]"
                             />
-                            <span className="bg-gradient-to-b from-[#a020f0] to-[#ff1493] bg-clip-text text-xl font-bold tracking-tight text-transparent">
-                                Deema Fashion
-                            </span>
                         </Link>
                         <p className="max-w-xs text-sm leading-relaxed text-custom-secondary">
                             {t("footer.tagline")}

@@ -125,9 +125,9 @@ export function PremiumAppLoader({
           >
             {!logoError ? (
               <img
-                src="/images/shared/favicon.png"
+                src="/images/shared/logo.png"
                 alt="Deema Fashion"
-                className="h-12 w-12 rounded-xl object-contain"
+                className="h-14 w-14 object-contain"
                 onError={() => setLogoError(true)}
               />
             ) : (

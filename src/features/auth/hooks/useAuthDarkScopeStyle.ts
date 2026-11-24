@@ -8,9 +8,9 @@ import { useAppSettings } from "@/features/account/hooks/useAppSettings";
 import { useAccountDarkScopeStyle } from "@/features/account/hooks/useAccountDarkScopeStyle";
 
 const AUTH_FALLBACK_PALETTE: AppSettingsColorPalette = {
-    main_color: "#c720a4",
-    second_color: "#ff1493",
-    text_color: "#e2e8f0",
+    main_color: "#D4B39A",
+    second_color: "#A9B07A",
+    text_color: "#F7F5F2",
 };
 
 function resolveAuthDarkPalette(

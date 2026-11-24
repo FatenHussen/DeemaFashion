@@ -400,7 +400,10 @@ export default function ApiSectionsRenderer({
     const { theme } = useTheme();
     const isDarkTheme = theme === "dark";
     const authenticated = useAuthStore((s) => s.authenticated);
-    const { data: favoriteProducts = [] } = useFavorites("product", false);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(authenticated),
+    );
     const { data: favoriteRecipes = [] } = useFavorites("recipe", false);
     const { data: favoriteBaskets = [] } = useFavorites("basket", false);
     const { data: favoriteShops = [] } = useFavorites("shop", false);
@@ -416,23 +419,39 @@ export default function ApiSectionsRenderer({
         [apiSections, language]
     );
     const toggleFavorite = useToggleFavorite();
-    const productFavoriteIds = favoriteProducts.map((f) => f.id);
-    const recipeFavoriteIds = favoriteRecipes.map((f) => f.id);
-    const basketFavoriteIds = favoriteBaskets.map((f) => f.id);
-    const shopFavoriteIds = favoriteShops.map((f) => f.id);
+    const productFavoriteIds = useMemo(
+        () => favoriteProducts.map((f) => Number(f.id)).filter(Number.isFinite),
+        [favoriteProducts],
+    );
+    const recipeFavoriteIds = useMemo(
+        () => favoriteRecipes.map((f) => Number(f.id)).filter(Number.isFinite),
+        [favoriteRecipes],
+    );
+    const basketFavoriteIds = useMemo(
+        () => favoriteBaskets.map((f) => Number(f.id)).filter(Number.isFinite),
+        [favoriteBaskets],
+    );
+    const shopFavoriteIds = useMemo(
+        () => favoriteShops.map((f) => Number(f.id)).filter(Number.isFinite),
+        [favoriteShops],
+    );
 
     // Optimistic favorite state: key ="type:id", value = optimistic isFavorite
     const [optimisticFavorites, setOptimisticFavorites] = useState<
         Map<string, boolean>
     >(new Map());
 
-    // Returns a computed isFavorite checker for a given type that respects optimistic overrides
+    // Optimistic override wins; otherwise trust the favorites list (home product
+    // rows often omit / send false for is_favorite even after a successful toggle).
     const makeIsFavoriteFor =
         (type: string, baseIds: number[]) =>
             (id: number, itemIsFavorite?: boolean): boolean => {
                 const key = `${type}:${id}`;
-                if (optimisticFavorites.has(key)) return optimisticFavorites.get(key)!;
-                return itemIsFavorite ?? baseIds.includes(id);
+                if (optimisticFavorites.has(key)) {
+                    return optimisticFavorites.get(key)!;
+                }
+                if (baseIds.includes(Number(id))) return true;
+                return Boolean(itemIsFavorite);
             };
 
     const handleViewAll = (section: Section) => {
@@ -500,20 +519,27 @@ export default function ApiSectionsRenderer({
             return;
         }
         const key = `${type}:${id}`;
-        // Flip immediately (optimistic)
-        setOptimisticFavorites((prev) => new Map(prev).set(key, !currentIsFavorite));
-        toggleFavorite.mutate({ type, id }, {
-            onError: () => {
-                // Rollback: API failed, restore the previous value
-                setOptimisticFavorites((prev) =>
-                    new Map(prev).set(key, currentIsFavorite)
-                );
+        const next = !currentIsFavorite;
+        // Flip immediately (optimistic) — keep until caches catch up.
+        setOptimisticFavorites((prev) => new Map(prev).set(key, next));
+        toggleFavorite.mutate(
+            { type, id, next_is_favorite: next },
+            {
+                onError: () => {
+                    setOptimisticFavorites((prev) =>
+                        new Map(prev).set(key, currentIsFavorite),
+                    );
+                },
+                onSuccess: (res) => {
+                    const fromApi = res?.data?.is_favorite;
+                    if (typeof fromApi === "boolean") {
+                        setOptimisticFavorites((prev) =>
+                            new Map(prev).set(key, fromApi),
+                        );
+                    }
+                },
             },
-            // onSuccess: intentionally omitted — the flipped optimistic value is
-            // already correct (it matches what the server saved). Removing it would
-            // reveal the stale sections cache (which still holds the old is_favorite),
-            // causing the heart icon to revert until the page is reloaded.
-        });
+        );
     };
 
     return (

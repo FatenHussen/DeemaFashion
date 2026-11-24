@@ -129,10 +129,38 @@ export async function refreshCartFromServer(): Promise<boolean> {
         return false;
     }
 
-    useCartStore.getState().replaceItems(parsed.items, {
-        cart_type: parsed.cart_type ?? "default",
-    });
+    const previous = useCartStore.getState().items;
+    useCartStore.getState().replaceItems(
+        mergeCartImagesFromLocal(parsed.items, previous),
+        {
+            cart_type: parsed.cart_type ?? "default",
+        },
+    );
     return true;
+}
+
+/** Keep a local product image when the GET cart payload omits it. */
+function mergeCartImagesFromLocal(
+    serverItems: CartItem[],
+    localItems: CartItem[],
+): CartItem[] {
+    if (localItems.length === 0) return serverItems;
+    return serverItems.map((item) => {
+        if (item.image?.trim()) return item;
+        const match = localItems.find((local) => {
+            if (
+                item.shop_product_variant_id != null &&
+                local.shop_product_variant_id != null
+            ) {
+                return (
+                    local.shop_product_variant_id === item.shop_product_variant_id
+                );
+            }
+            return local.id === item.id;
+        });
+        if (!match?.image?.trim()) return item;
+        return { ...item, image: match.image };
+    });
 }
 
 /** Fire-and-forget add — then pull so line ids exist for later PUT/DELETE. */
@@ -308,9 +336,13 @@ export async function syncCartWithServer(
                 );
                 return;
             }
-            useCartStore.getState().replaceItems(parsed.items, {
-                cart_type: parsed.cart_type ?? "default",
-            });
+            const previous = useCartStore.getState().items;
+            useCartStore.getState().replaceItems(
+                mergeCartImagesFromLocal(parsed.items, previous),
+                {
+                    cart_type: parsed.cart_type ?? "default",
+                },
+            );
             return;
         }
 

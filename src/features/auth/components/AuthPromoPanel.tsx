@@ -46,9 +46,9 @@ export default function AuthPromoPanel() {
  )}
  >
  <img
- src="/images/shared/favicon.png"
+ src="/images/shared/logo.png"
  alt="Deema Fashion"
- className="w-full h-auto max-h-48 object-contain rounded-2xl"
+ className="h-auto max-h-52 w-full object-contain"
  />
  </div>
  </div>

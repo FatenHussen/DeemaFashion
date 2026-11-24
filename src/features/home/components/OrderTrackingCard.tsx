@@ -121,8 +121,10 @@ export default function OrderTrackingCard({ order }: OrderTrackingCardProps) {
               }));
 
   const brandFill = {
-    background:
-      "linear-gradient(135deg, var(--color-gradient-from) 0%, var(--color-gradient-to) 100%)",
+    background: "var(--color-brand-primary, var(--color-primary))",
+  };
+  const highlightFill = {
+    background: "var(--color-brand-highlight, var(--color-api-second))",
   };
 
   const renderStage = (stage: ActiveOrderStatus, index: number) => {
@@ -165,7 +167,7 @@ export default function OrderTrackingCard({ order }: OrderTrackingCardProps) {
               "border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] dark:border-white/[0.1] dark:bg-white/[0.04]",
             (isActive || isCompleted) && "shadow-sm ring-2 ring-white dark:ring-white/10",
           )}
-          style={isUpcoming ? undefined : brandFill}
+          style={isUpcoming ? undefined : isActive ? highlightFill : brandFill}
         >
           {getStageIcon(stage, state)}
         </div>
@@ -191,17 +193,17 @@ export default function OrderTrackingCard({ order }: OrderTrackingCardProps) {
     <div
       className={cn(
         "relative overflow-hidden rounded-2xl p-3 sm:p-4",
-        "border border-[color-mix(in_srgb,var(--color-primary)_14%,var(--color-border-primary))]",
-        "bg-[linear-gradient(165deg,color-mix(in_srgb,var(--color-primary)_8%,#fff)_0%,color-mix(in_srgb,var(--color-primary-light)_6%,#faf7fb)_55%,#fff_100%)]",
-        "shadow-[0_8px_28px_-16px_color-mix(in_srgb,var(--color-primary)_28%,rgba(26,15,30,0.2))]",
-        "dark:border-white/[0.1] dark:bg-[linear-gradient(165deg,#22151f_0%,#1a0f1e_55%,#161218_100%)]",
+        "border border-[color-mix(in_srgb,var(--color-brand-accent,#D4B39A)_45%,var(--color-border-primary))]",
+        "bg-[linear-gradient(165deg,color-mix(in_srgb,var(--color-brand-background,#EAD8C7)_55%,#fff)_0%,#fff_70%)]",
+        "shadow-[0_10px_28px_-18px_rgba(90,58,46,0.2)]",
+        "dark:border-white/[0.1] dark:bg-[linear-gradient(165deg,#24201C_0%,#1C1916_55%,#171412_100%)]",
       )}
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div
         className={cn(
-          "rounded-xl border border-white/80 bg-[var(--color-bg-card)] p-3.5 shadow-sm sm:p-4",
-          "dark:border-white/[0.08] dark:bg-[color-mix(in_srgb,var(--color-bg-card)_88%,#1a0f1e)] dark:shadow-none",
+          "rounded-xl border border-[color-mix(in_srgb,var(--color-brand-accent,#D4B39A)_30%,#fff)] bg-[var(--color-bg-card)] p-3.5 shadow-sm sm:p-4",
+          "dark:border-white/[0.08] dark:bg-[color-mix(in_srgb,var(--color-bg-card)_88%,#171412)] dark:shadow-none",
         )}
       >
         {/* Header: receipt · order id · track */}
@@ -236,7 +238,7 @@ export default function OrderTrackingCard({ order }: OrderTrackingCardProps) {
 
         {/* Status */}
         <p className="mb-3.5 text-center text-xs font-medium text-[var(--color-text-secondary)] dark:text-white/65 sm:text-sm">
-          <span className="font-bold text-[var(--color-primary)]">{statusRowLabel}</span>
+          <span className="font-bold text-[var(--color-brand-highlight,var(--color-api-second))]">{statusRowLabel}</span>
           {scheduledLabel ? (
             <>
               <span className="mx-1.5 opacity-40">-</span>

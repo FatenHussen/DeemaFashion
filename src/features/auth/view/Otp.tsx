@@ -116,9 +116,9 @@ export default function Otp() {
                 )}
             >
                 <img
-                    src="/images/shared/favicon.png"
+                    src="/images/shared/logo.png"
                     alt="Deema Fashion"
-                    className="mx-auto h-auto w-full max-w-[180px] rounded-2xl object-contain"
+                    className="mx-auto h-auto w-full max-w-[200px] object-contain"
                 />
             </div>
         </div>

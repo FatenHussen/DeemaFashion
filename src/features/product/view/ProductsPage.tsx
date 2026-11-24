@@ -11,7 +11,12 @@ import { _BrandApi } from "@/features/product/api/brandApi";
 import { _ShopApi } from "@/features/store/api/shopApi";
 import { useInfiniteSelect } from "@/shared/hooks/useInfiniteSelect";
 import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
-import { useToggleFavorite } from "@/features/account/hooks/useFavorites";
+import {
+    resolveIsFavorite,
+    useFavorites,
+    useToggleFavorite,
+} from "@/features/account/hooks/useFavorites";
+import { useAuthStore } from "@/store/auth";
 import type { SectionsFilters } from "@/features/home/api/sections.service";
 import { useSectionsByPosition } from "@/features/home/hooks/useSections";
 import ApiSectionsRenderer from "@/shared/component/sections/ApiSectionsRenderer";
@@ -148,6 +153,15 @@ export default function ProductsPage() {
         anchorRestore: true,
     });
 
+    const authenticated = useAuthStore((s) => s.authenticated);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(authenticated),
+    );
+    const favoriteIds = useMemo(
+        () => favoriteProducts.map((f) => Number(f.id)),
+        [favoriteProducts],
+    );
     const toggleFavorite = useToggleFavorite();
 
     const { beforeSections, afterSections } = useSectionsByPosition(
@@ -164,7 +178,17 @@ export default function ProductsPage() {
     };
 
     const handleToggleFavorite = (id: number) => {
-        toggleFavorite.mutate({ type: "product", id });
+        if (!authenticated) {
+            navigate("/auth/sign-in");
+            return;
+        }
+        const product = products.find((p) => p.id === id);
+        const next = !resolveIsFavorite({
+            id,
+            itemFlag: product?.is_favorite,
+            favoriteIds,
+        });
+        toggleFavorite.mutate({ type: "product", id, next_is_favorite: next });
     };
 
     const applyDraft = useCallback((next: ProductsFilters) => {
@@ -210,7 +234,11 @@ export default function ProductsPage() {
             savings: listing.savings,
             discountLabel: listing.discountLabel,
             deliveryInfo: t("home.freeDelivery", "Free Delivery"),
-            isFavorite: product.is_favorite ?? false,
+            isFavorite: resolveIsFavorite({
+                id: product.id,
+                itemFlag: product.is_favorite,
+                favoriteIds,
+            }),
             onClick: handleProductClick,
             onToggleFavorite: handleToggleFavorite,
             t,

@@ -140,7 +140,10 @@ export default function BrandProducts() {
         (s) => s.display_type_id !== 1
     );
 
-    const { data: favoriteProducts = [] } = useFavorites("product", false);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(token),
+    );
     const toggleFavorite = useToggleFavorite();
     const favoriteIds = favoriteProducts.map((f) => f.id);
 
@@ -171,7 +174,8 @@ export default function BrandProducts() {
                 sold: item.sold_number,
                 savings: listing.savings,
                 discountLabel: listing.discountLabel,
-                isFavorite: item.is_favorite ?? favoriteIds.includes(item.id),
+                isFavorite:
+                    favoriteIds.includes(item.id) || item.is_favorite === true,
             };
         });
     };

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Deema Fashion">
+  <!-- Primary lockup: brown monogram + sage butterfly (brand sheet center) -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="#5A3A2E" stroke-width="9.5" d="M44 26 H64 C89 26 106 43 106 64 C106 85 89 102 64 102 H44"/>
+    <path stroke="#5A3A2E" stroke-width="9.5" d="M44 26 V102"/>
+    <path stroke="#5A3A2E" stroke-width="8" d="M44 50 H78"/>
+    <path stroke="#5A3A2E" stroke-width="8" d="M44 72 H70"/>
+  </g>
+  <g fill="none" stroke="#A9B07A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 54 C29 46 21 45 19 50 C17 55 24 61 36 64"/>
+    <path d="M36 64 C26 68 20 75 23 80 C26 84 32 79 38 70"/>
+    <path d="M36 48 V82"/>
+    <circle cx="36" cy="46" r="1.8" fill="#A9B07A" stroke="none"/>
+  </g>
+</svg>

@@ -5,8 +5,9 @@ import i18n from"@/i18n/config";
 import { useLanguage } from"@/context/LanguageContext";
 import { useCurrency } from"@/context/CurrencyContext";
 import { formatOrderMoney } from"../utils/parseOrdersResponse";
-import { Search } from "lucide-react";
+import { ClipboardList, PackageSearch, Search } from "lucide-react";
 import { cn } from"@/shared/lib/utils";
+import { PremiumInlineLoader } from "@/shared/component/loading";
 import { useMutation, useQueryClient } from"@tanstack/react-query";
 import { toast } from"sonner";
 import OrderCard from"@/features/cart/components/OrderCard";
@@ -297,80 +298,115 @@ export default function MyOrders() {
  ];
 
  return (
- <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <section className="account-shell relative overflow-hidden rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] p-6 shadow-[0_4px_24px_-8px_var(--color-shadow)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.04)]">
-        <span className="pointer-events-none absolute -end-16 -top-16 h-44 w-44 rounded-full bg-[var(--color-api-second)] opacity-10 blur-3xl" aria-hidden />
-        <span className="pointer-events-none absolute -bottom-12 -start-10 h-36 w-36 rounded-full bg-[var(--color-main)] opacity-[0.07] blur-3xl" aria-hidden />
-        <div className="relative">
-          <h1 className="text-2xl font-bold text-custom-primary mb-1.5">
-            {t("orders.myOrders")}
-          </h1>
-          <p className="text-custom-secondary text-sm">
-            {t("orders.myOrdersDescription")}
-          </p>
+ <div className="space-y-5 sm:space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      <section
+        className={cn(
+          "account-shell relative overflow-hidden rounded-2xl border border-[var(--color-border-primary)]",
+          "bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-bg-card)_92%,var(--color-api-second))_0%,var(--color-bg-card)_58%,color-mix(in_srgb,var(--color-bg-card)_96%,var(--color-main))_100%)]",
+          "p-5 shadow-[0_4px_24px_-8px_var(--color-shadow)] sm:p-6",
+        )}
+      >
+        <span
+          className="pointer-events-none absolute -end-10 -top-12 h-36 w-36 rounded-full bg-[var(--color-api-second)] opacity-[0.12] blur-2xl"
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-api-second)] to-[var(--color-api-second-hover)] shadow-md">
+              <ClipboardList className="h-6 w-6 text-white" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-custom-primary sm:text-2xl">
+                {t("orders.myOrders")}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-custom-secondary">
+                {t("orders.myOrdersDescription")}
+              </p>
+            </div>
+          </div>
+          {!isLoading && !ordersError ? (
+            <span className="inline-flex w-fit shrink-0 items-center rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)]/80 px-3 py-2 text-xs font-medium text-custom-secondary backdrop-blur-sm">
+              {filteredOrders.length} {t("orders.myOrders")}
+            </span>
+          ) : null}
         </div>
       </section>
 
- <div className="flex flex-col lg:flex-row gap-4 mb-6">
- <div className="flex-1">
- <div className="relative">
-                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary"/>
- <input
- type="text"
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- placeholder={t("orders.searchPlaceholder")}
- className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] text-custom-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-accent)] focus:border-transparent"
- />
- </div>
- </div>
- <div className="lg:w-auto">
- <select
- value={sortBy}
- onChange={(e) => setSortBy(e.target.value)}
- className="px-4 py-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] text-custom-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-accent)] focus:border-transparent"
- >
- {sortOptions.map((option) => (
- <option key={option.value} value={option.value}>
- {t("orders.sortBy")}: {option.label}
- </option>
- ))}
- </select>
- </div>
- </div>
+      <section className="account-shell space-y-4 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] p-4 shadow-[0_2px_12px_-4px_var(--color-shadow)] sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className={cn(
+                "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-custom-tertiary",
+                isRTL ? "right-3.5" : "left-3.5",
+              )}
+              aria-hidden
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("orders.searchPlaceholder")}
+              className={cn(
+                "w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-surface)] py-2.5 text-sm text-custom-primary",
+                "placeholder:text-custom-tertiary focus:border-[var(--color-border-accent)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-api-second)_25%,transparent)]",
+                isRTL ? "pl-4 pr-10" : "pl-10 pr-4",
+              )}
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-surface)] px-3.5 py-2.5 text-sm text-custom-primary focus:border-[var(--color-border-accent)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-api-second)_25%,transparent)] lg:min-w-[220px]"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t("orders.sortBy")}: {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
- <div className="flex flex-wrap gap-2 mb-6">
- {filterButtons.map((filter) => (
- <button
- key={filter.value}
- onClick={() => setActiveFilter(filter.value)}
- className={cn(
-   "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-   activeFilter === filter.value
-     ? "bg-[var(--color-api-second)] text-white shadow-sm"
-     : "bg-[var(--color-bg-card)] text-custom-secondary border border-[var(--color-border-primary)] hover:border-[var(--color-border-accent)] hover:text-custom-primary",
- )}
- >
- {filter.label}
- </button>
- ))}
- </div>
+        <div className="flex flex-wrap gap-2">
+          {filterButtons.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setActiveFilter(filter.value)}
+              className={cn(
+                "rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                activeFilter === filter.value
+                  ? "bg-[var(--color-api-second)] text-white shadow-sm"
+                  : "border border-[var(--color-border-primary)] bg-[var(--color-bg-surface)] text-custom-secondary hover:border-[var(--color-border-accent)] hover:text-custom-primary",
+              )}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
  {isLoading ? (
- <div className="py-14 text-center text-text-secondary">
- {t("common.loading")}
+ <div className="flex justify-center py-16">
+   <PremiumInlineLoader size="md" />
  </div>
  ) : ordersError ? (
- <div className="py-14 text-center text-text-secondary">
+ <div className="account-shell rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] px-6 py-16 text-center text-sm text-custom-secondary">
  {t("errors.pageLoadFailed","We could not display this page. Please try again.")}
  </div>
  ) : filteredOrders.length === 0 ? (
- <div className="py-14 text-center text-text-secondary">
- {t("orders.noOrdersFound")}
+ <div className="account-shell flex flex-col items-center rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] px-6 py-16 text-center">
+   <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-api-second)_12%,transparent)] text-[var(--color-api-second)]">
+     <PackageSearch className="h-7 w-7" aria-hidden />
+   </div>
+   <p className="text-sm font-medium text-custom-primary">{t("orders.noOrdersFound")}</p>
+   <p className="mt-1 max-w-sm text-xs text-custom-secondary">
+     {t("orders.myOrdersDescription")}
+   </p>
  </div>
  ) : (
  <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
@@ -381,10 +417,9 @@ export default function MyOrders() {
                   e.key ==="Enter"&&
                   handleCardClick(order.id, e as unknown as React.MouseEvent)
                 }
-                className="group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-primary)] rounded-3xl"
+                className="group cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-api-second)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-primary)]"
               >
  <OrderCard
- key={order.id}
  orderNumber={order.orderNumber}
  status={order.status}
  dateTime={order.dateTime}
@@ -424,8 +459,8 @@ export default function MyOrders() {
 
  <div ref={observerTarget} className="h-4"aria-hidden />
  {isFetchingNextPage && (
- <div className="py-4 text-center text-text-secondary text-sm">
- {t("common.loading")}
+ <div className="flex justify-center py-4">
+   <PremiumInlineLoader size="sm" />
  </div>
  )}
  </>

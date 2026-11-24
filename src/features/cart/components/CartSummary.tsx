@@ -98,7 +98,7 @@ export default function CartSummary({
                     <FormattedPrice
                         value={summary.total}
                         layout="inline"
-                        className="text-xl font-extrabold tabular-nums text-[color:var(--color-api-second)]"
+                        className="text-xl font-extrabold tabular-nums text-[#3D2418] dark:text-[#E8D5C4]"
                     />
                 </div>
 

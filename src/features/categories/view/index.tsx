@@ -34,7 +34,12 @@ import { selectRenderableCategorySections } from "../lib/categoryPageSections";
 import { readCategoryColor } from "@/shared/lib/categoryColors";
 import { _CategoriesApi } from "../api/categoriesApi";
 import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
-import { useToggleFavorite } from "@/features/account/hooks/useFavorites";
+import {
+    resolveIsFavorite,
+    useFavorites,
+    useToggleFavorite,
+} from "@/features/account/hooks/useFavorites";
+import { useAuthStore } from "@/store/auth";
 import { paths } from "@/app/routes/path/paths";
 import type { ApiProduct, ProductBadge } from "../types";
 import type { CategoryTypeFilter } from "../components/CategoryFilters";
@@ -122,6 +127,15 @@ export default function CategoriesView() {
     // we clear them when the browsed category changes to avoid stale chips.
     const [attributeValues, setAttributeValues] = useState<number[]>([]);
     const [favoriteStates, setFavoriteStates] = useState<Record<number, boolean>>({});
+    const authenticated = useAuthStore((s) => s.authenticated);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(authenticated),
+    );
+    const favoriteIds = useMemo(
+        () => favoriteProducts.map((f) => Number(f.id)),
+        [favoriteProducts],
+    );
     const themeGradientColors = useMemo(() => {
         if (typeof window === "undefined") return undefined;
         const styles = getComputedStyle(document.documentElement);
@@ -303,15 +317,20 @@ export default function CategoriesView() {
 
     const handleToggleFavorite = (productId: number) => {
         const product = products.find((p) => p.id === productId);
-        const currentFavorite =
-            productId in favoriteStates
-                ? favoriteStates[productId]
-                : (product?.is_favorite ?? false);
+        const currentFavorite = resolveIsFavorite({
+            id: productId,
+            itemFlag: product?.is_favorite,
+            favoriteIds,
+            optimistic:
+                productId in favoriteStates
+                    ? favoriteStates[productId]
+                    : undefined,
+        });
 
         setFavoriteStates((prev) => ({ ...prev, [productId]: !currentFavorite }));
 
         toggleFavorite.mutate(
-            { type: "product", id: productId },
+            { type: "product", id: productId, next_is_favorite: !currentFavorite },
             {
                 onSuccess: (res) => {
                     const isFavorite = res?.data?.is_favorite ?? !currentFavorite;
@@ -604,11 +623,15 @@ export default function CategoriesView() {
                                         image={listingImageSrc(product)}
                                         category={product.category}
                                         sold={product.sold_number ?? 0}
-                                        isFavorite={
-                                            product.id in favoriteStates
-                                                ? favoriteStates[product.id]
-                                                : (product.is_favorite ?? false)
-                                        }
+                                        isFavorite={resolveIsFavorite({
+                                            id: product.id,
+                                            itemFlag: product.is_favorite,
+                                            favoriteIds,
+                                            optimistic:
+                                                product.id in favoriteStates
+                                                    ? favoriteStates[product.id]
+                                                    : undefined,
+                                        })}
                                         onToggleFavorite={handleToggleFavorite}
                                         savings={listing.savings}
                                         discountLabel={listing.discountLabel}

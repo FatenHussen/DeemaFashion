@@ -182,7 +182,10 @@ export function enrichCartItemsWithPreview(
     return {
       ...item,
       name: orderItem?.product_name ?? item.name,
-      image: orderItem?.product_image ?? orderItem?.image ?? item.image,
+      image:
+        orderItem?.product_image ??
+        orderItem?.image ??
+        item.image,
       store: orderItem?.shop_name ?? item.store,
       size: variantStr ?? item.size,
       sku: previewSku || item.sku,

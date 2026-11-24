@@ -13,14 +13,14 @@ type AuthBrandProps = {
  * logo asset so it always matches the active theme.
  */
 export default function AuthBrand({ className, size = "md" }: AuthBrandProps) {
-    const dim = size === "sm" ? "h-9" : "h-11";
+    const dim = size === "sm" ? "h-12 max-w-[140px]" : "h-16 max-w-[180px]";
 
     return (
         <div className={cn("flex items-center justify-center", className)}>
             <img
-                src="/images/shared/favicon.png"
+                src="/images/shared/logo.png"
                 alt="Deema Fashion"
-                className={cn(dim, "aspect-square w-auto rounded-lg object-contain")}
+                className={cn(dim, "w-auto object-contain")}
             />
         </div>
     );

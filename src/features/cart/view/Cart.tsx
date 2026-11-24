@@ -24,6 +24,7 @@ import {
     syncQuantityToServer,
     syncRemoveToServer,
 } from "../api/cartApi";
+import { toStorageUrl } from "@/shared/lib/storageUrl";
 
 function parseSubtotal(s: string): number {
     return parseFloat(String(s).replace(/[^0-9.]/g, "")) || 0;
@@ -291,13 +292,24 @@ export default function Cart() {
                                         qs ? `?${qs}` : ""
                                     }`;
                                 })();
+                                const imageFromPreview =
+                                    orderItem?.product_image ||
+                                    orderItem?.image ||
+                                    undefined;
                                 return {
                                     previewPrice,
                                     displayName: orderItem?.product_name,
                                     displayVariant: orderItem?.variant,
                                     displaySku: orderItem?.sku ?? item.sku,
-                                    displayStore: item.store,
+                                    displayStore:
+                                        orderItem?.shop_name ?? item.store,
                                     productHref,
+                                    image:
+                                        toStorageUrl(imageFromPreview) ||
+                                        imageFromPreview ||
+                                        toStorageUrl(item.image) ||
+                                        item.image ||
+                                        undefined,
                                 };
                             }}
                         />

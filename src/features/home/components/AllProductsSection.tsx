@@ -15,7 +15,12 @@ import { useTheme } from "@/context/ThemeContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import type { BrandListItem } from "@/features/product/types/brand";
 import type { ShopListItem } from "@/features/store/types/shop";
-import { useToggleFavorite } from "@/features/account/hooks/useFavorites";
+import {
+    resolveIsFavorite,
+    useFavorites,
+    useToggleFavorite,
+} from "@/features/account/hooks/useFavorites";
+import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/shared/component/card/ProductCard";
 import { getDarkCardSurfaceGradient } from "@/shared/component/sections/sectionCardVariant";
 import ProductCardSkeleton from "@/shared/component/skeleton/ProductCardSkeleton";
@@ -115,10 +120,59 @@ export default function AllProductsSection({
             anchorRestore: true,
         });
 
+    const authenticated = useAuthStore((s) => s.authenticated);
+    const { data: favoriteProducts = [] } = useFavorites(
+        "product",
+        Boolean(authenticated),
+    );
+    const favoriteIds = useMemo(
+        () => new Set(favoriteProducts.map((f) => Number(f.id))),
+        [favoriteProducts],
+    );
     const toggleFavorite = useToggleFavorite();
+    const [optimisticFavorites, setOptimisticFavorites] = useState<
+        Record<number, boolean>
+    >({});
+
+    const isProductFavorite = (product: ProductItem) =>
+        resolveIsFavorite({
+            id: product.id,
+            itemFlag: product.is_favorite,
+            favoriteIds,
+            optimistic:
+                product.id in optimisticFavorites
+                    ? optimisticFavorites[product.id]
+                    : undefined,
+        });
 
     const handleProductClick = (id: number) => navigate(paths.client.productDetails(id));
-    const handleToggleFavorite = (id: number) => toggleFavorite.mutate({ type: "product", id });
+    const handleToggleFavorite = (id: number) => {
+        if (!authenticated) {
+            navigate("/auth/sign-in");
+            return;
+        }
+        const product = products.find((p) => p.id === id);
+        const current = product ? isProductFavorite(product) : favoriteIds.has(id);
+        const next = !current;
+        setOptimisticFavorites((prev) => ({ ...prev, [id]: next }));
+        toggleFavorite.mutate(
+            { type: "product", id, next_is_favorite: next },
+            {
+                onError: () => {
+                    setOptimisticFavorites((prev) => ({ ...prev, [id]: current }));
+                },
+                onSuccess: (res) => {
+                    const fromApi = res?.data?.is_favorite;
+                    if (typeof fromApi === "boolean") {
+                        setOptimisticFavorites((prev) => ({
+                            ...prev,
+                            [id]: fromApi,
+                        }));
+                    }
+                },
+            },
+        );
+    };
 
     const convertProductToCardProps = (product: ProductItem) => {
         const topBadges = mapApiTopBadgesToProductCard(product.top_badges ?? product.budges) ?? undefined;
@@ -143,7 +197,7 @@ export default function AllProductsSection({
             savings: listing.savings,
             discountLabel: listing.discountLabel,
             deliveryInfo: t("home.freeDelivery", "Free Delivery"),
-            isFavorite: product.is_favorite ?? false,
+            isFavorite: isProductFavorite(product),
             onClick: handleProductClick,
             onToggleFavorite: handleToggleFavorite,
             surfaceGradient: isDarkTheme ? getDarkCardSurfaceGradient() : undefined,

@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/shared/lib/utils";
 import FormattedPrice from "@/shared/component/FormattedPrice";
+import { toStorageUrl } from "@/shared/lib/storageUrl";
 import { toNum } from "../utils";
 import type { CartItem } from "../types";
 
@@ -63,7 +64,12 @@ export default function CartItemCard({
           ? Object.values(item.selectedAttributes).join(" · ")
           : undefined;
     const storeName = displayStore ?? item.store;
-    const imageSrc = image || item.image;
+    const imageSrc =
+        toStorageUrl(image) ||
+        image ||
+        toStorageUrl(item.image) ||
+        item.image ||
+        "";
     const title = displayName ?? item.name;
     const lineNote = note ?? item.note;
     const sku = (displaySku ?? item.sku)?.trim();
@@ -180,7 +186,7 @@ export default function CartItemCard({
                                     <FormattedPrice
                                         value={lineTotal}
                                         layout="inline"
-                                        className="text-sm font-bold tabular-nums text-[color:var(--color-api-second)]"
+                                        className="text-sm font-bold tabular-nums text-[#3D2418] dark:text-[#E8D5C4]"
                                     />
                                 </div>
                             </div>

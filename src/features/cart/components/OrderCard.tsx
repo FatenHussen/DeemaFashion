@@ -2,8 +2,12 @@ import {
     Truck,
     X,
     Clock,
-    ClipboardList,
+    Package,
     MapPin,
+    RotateCcw,
+    MessageSquareWarning,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { orderDeliveryChoiceLabel } from "../utils/formatScheduledDelivery";
@@ -40,70 +44,59 @@ type OrderCardProps = {
     refundStatus?: string;
 };
 
-type StatusUI = {
+type StatusTone = {
     label: string;
-    dotColorVar: string;
-};
-
-type AccentColors = {
+    dot: string;
+    badgeBg: string;
+    badgeText: string;
     accent: string;
-    orbStrong: string;
-    orbSoft: string;
 };
 
-const getStatusUI = (status: OrderStatus, t: (key: string) => string): StatusUI => {
+const getStatusTone = (status: OrderStatus, t: (key: string) => string): StatusTone => {
     if (isOutDeliveryStatus(status)) {
-        return { label: getOrderStatusLabel(status, { t }), dotColorVar: "#2563eb" };
+        return {
+            label: getOrderStatusLabel(status, { t }),
+            dot: "#2563eb",
+            badgeBg: "color-mix(in srgb, #2563eb 12%, var(--color-bg-card))",
+            badgeText: "#1d4ed8",
+            accent: "#2563eb",
+        };
     }
     switch (status) {
         case "delivered":
-            return { label: getOrderStatusLabel(status, { t }), dotColorVar: "var(--color-success)" };
+            return {
+                label: getOrderStatusLabel(status, { t }),
+                dot: "var(--color-success)",
+                badgeBg: "color-mix(in srgb, var(--color-success) 12%, var(--color-bg-card))",
+                badgeText: "var(--color-success)",
+                accent: "var(--color-success)",
+            };
         case "preparing":
-            return { label: getOrderStatusLabel(status, { t }), dotColorVar: "var(--color-warning)" };
+            return {
+                label: getOrderStatusLabel(status, { t }),
+                dot: "var(--color-warning)",
+                badgeBg: "color-mix(in srgb, var(--color-warning) 14%, var(--color-bg-card))",
+                badgeText: "var(--color-warning)",
+                accent: "var(--color-warning)",
+            };
         case "cancelled":
         case "cancelled_by_admin":
-            return { label: getOrderStatusLabel(status, { t }), dotColorVar: "var(--color-error)" };
+            return {
+                label: getOrderStatusLabel(status, { t }),
+                dot: "var(--color-error)",
+                badgeBg: "color-mix(in srgb, var(--color-error) 12%, var(--color-bg-card))",
+                badgeText: "var(--color-error)",
+                accent: "var(--color-error)",
+            };
         case "pending":
-            return { label: getOrderStatusLabel(status, { t }), dotColorVar: "var(--color-primary)" };
         default:
-            return { label: getOrderStatusLabel(status, { t }), dotColorVar: "var(--color-primary)" };
-    }
-};
-
-const getCardBackground = (status: OrderStatus): string => {
-    const bg = "var(--color-bg-card)";
-    const mix = (color: string, pct1: number, pct2: number) =>
-        `linear-gradient(165deg, color-mix(in srgb, ${color} ${pct1}%, ${bg}) 0%, ${bg} 42%, color-mix(in srgb, ${color} ${pct2}%, ${bg}) 100%)`;
-
-    if (isOutDeliveryStatus(status)) return mix("#3b82f6", 10, 4);
-
-    switch (status) {
-        case "pending":          return mix("var(--color-primary)", 13, 6);
-        case "preparing":        return mix("var(--color-warning)", 11, 5);
-        case "delivered":        return mix("var(--color-success)", 9, 4);
-        case "cancelled":
-        case "cancelled_by_admin":
-            return mix("var(--color-error)", 9, 4);
-        default:                 return mix("var(--color-primary)", 13, 6);
-    }
-};
-
-const getAccentColors = (status: OrderStatus): AccentColors => {
-    if (isOutDeliveryStatus(status)) {
-        return { accent: "#3b82f6", orbStrong: "#3b82f6", orbSoft: "var(--color-primary)" };
-    }
-    switch (status) {
-        case "pending":
-            return { accent: "var(--color-primary)", orbStrong: "var(--color-primary)", orbSoft: "var(--color-api-second)" };
-        case "preparing":
-            return { accent: "var(--color-warning)", orbStrong: "var(--color-warning)", orbSoft: "var(--color-primary)" };
-        case "delivered":
-            return { accent: "var(--color-success)", orbStrong: "var(--color-success)", orbSoft: "var(--color-primary)" };
-        case "cancelled":
-        case "cancelled_by_admin":
-            return { accent: "var(--color-error)", orbStrong: "var(--color-error)", orbSoft: "var(--color-text-tertiary)" };
-        default:
-            return { accent: "var(--color-primary)", orbStrong: "var(--color-primary)", orbSoft: "var(--color-api-second)" };
+            return {
+                label: getOrderStatusLabel(status, { t }),
+                dot: "var(--color-api-second)",
+                badgeBg: "color-mix(in srgb, var(--color-api-second) 12%, var(--color-bg-card))",
+                badgeText: "var(--color-api-second)",
+                accent: "var(--color-api-second)",
+            };
     }
 };
 
@@ -120,6 +113,7 @@ export default function OrderCard({
     orderNumber,
     status,
     dateTime,
+    items,
     additionalInfo,
     deliveryAddress,
     total,
@@ -140,215 +134,202 @@ export default function OrderCard({
         scheduledDeliveryAt,
         i18n.language,
     );
-
-    const statusUI = getStatusUI(status, t);
-    const cardBg = getCardBackground(status);
-    const fe = getAccentColors(status);
+    const tone = getStatusTone(status, t);
     const last4 = extractLast4(paymentMethod);
-
     const canCancel = !!onCancelOrder && (status === "pending" || status === "preparing");
-
-    // Decorative line gradient (top border accent)
-    const topLineBg = `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${fe.accent} 55%, transparent) 35%, color-mix(in srgb, ${fe.accent} 75%, transparent) 50%, color-mix(in srgb, ${fe.accent} 55%, transparent) 65%, transparent 100%)`;
-    // Orb backgrounds
-    const orbStrongBg = `radial-gradient(circle, color-mix(in srgb, ${fe.orbStrong} 42%, transparent) 0%, transparent 70%)`;
-    const orbSoftBg = `radial-gradient(circle, color-mix(in srgb, ${fe.orbSoft} 35%, transparent) 0%, transparent 72%)`;
-    // Overlay gradient
-    const overlayBg = `radial-gradient(at 0% 0%, color-mix(in srgb, ${fe.accent} 20%, transparent) 0px, transparent 50%), radial-gradient(at 100% 100%, color-mix(in srgb, ${fe.orbSoft} 18%, transparent) 0px, transparent 55%)`;
-    // Icon background
-    const iconBg = `linear-gradient(145deg, color-mix(in srgb, ${fe.accent} 22%, var(--color-bg-tertiary)) 0%, var(--color-bg-tertiary) 100%)`;
-    const iconBoxShadow = `inset 0 1px 0 color-mix(in srgb, ${fe.accent} 25%, transparent)`;
+    const primaryItem = items[0];
+    const DetailsChevron = isRTL ? ChevronLeft : ChevronRight;
+    const hasPayment =
+        Boolean(paymentMethod) && paymentMethod !== "-" && paymentMethod !== "—";
 
     return (
-        <div
+        <article
             className={cn(
-                "relative overflow-hidden rounded-3xl",
-                "shadow-[0_6px_24px_-4px_color-mix(in_srgb,var(--color-main)_22%,transparent),0_20px_44px_-16px_color-mix(in_srgb,var(--color-main)_14%,transparent)]",
-                "transition-all duration-300 ease-out",
-                "group-hover:-translate-y-1 group-hover:shadow-[0_14px_40px_-8px_color-mix(in_srgb,var(--color-main)_32%,transparent),0_24px_48px_-14px_color-mix(in_srgb,var(--color-main)_18%,transparent)]",
+                "account-shell group/card relative flex h-full flex-col overflow-hidden rounded-2xl",
+                "border border-[var(--color-border-primary)] bg-[var(--color-bg-card)]",
+                "shadow-[0_2px_14px_-6px_var(--color-shadow)]",
+                "transition-[border-color,box-shadow,transform] duration-200 ease-out",
+                "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--color-api-second)_35%,var(--color-border-primary))]",
+                "hover:shadow-[0_10px_28px_-12px_var(--color-shadow)]",
             )}
-            style={{ background: cardBg }}
             dir={isRTL ? "rtl" : "ltr"}
         >
-            {/* Decorative top accent line */}
-            <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[3px] opacity-90"
-                style={{ background: topLineBg }}
-                aria-hidden
-            />
-            {/* Top-right orb */}
-            <div
-                className="pointer-events-none absolute -right-10 -top-12 z-0 h-36 w-36 rounded-full blur-3xl"
-                style={{ background: orbStrongBg }}
-                aria-hidden
-            />
-            {/* Bottom-left orb */}
-            <div
-                className="pointer-events-none absolute -bottom-14 -left-8 z-0 h-32 w-32 rounded-full blur-2xl"
-                style={{ background: orbSoftBg }}
-                aria-hidden
-            />
-            {/* Color overlay */}
-            <div
-                className="pointer-events-none absolute inset-0 z-0 opacity-[0.35] mix-blend-soft-light dark:opacity-[0.2]"
-                style={{ backgroundImage: overlayBg }}
+            <span
+                className="absolute inset-y-0 start-0 w-1"
+                style={{ backgroundColor: tone.accent }}
                 aria-hidden
             />
 
-            {/* Content */}
-            <div className="relative z-10">
-                {/* Header: icon + order info + status badge */}
-                <div className="p-4 pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                        {/* Left: icon + order details */}
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <div
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 ring-black/5 dark:ring-white/10"
-                                style={{ background: iconBg, boxShadow: iconBoxShadow }}
-                            >
-                                <ClipboardList className="h-5 w-5" style={{ color: fe.accent }} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-bold text-text-primary">
-                                    {t("orders.order")} #{orderNumber}
-                                </p>
-                                <div className="mt-1 flex items-center gap-1.5 text-xs text-text-secondary">
-                                    <span className="truncate">{dateTime}</span>
-                                    <Clock className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                                </div>
-                                {scheduledLabel ? (
-                                    <p className="mt-1 text-xs font-medium text-text-primary">
-                                        {t("orders.scheduledDelivery", "Delivery appointment")}:{" "}
-                                        {scheduledLabel}
-                                    </p>
-                                ) : null}
-                            </div>
-                        </div>
-
-                        {/* Status badge */}
+            <div className="flex flex-1 flex-col p-4 ps-5 sm:p-5 sm:ps-6">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
                         <div
-                            className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-text-secondary backdrop-blur-[2px] shadow-[0_2px_10px_-2px_color-mix(in_srgb,var(--color-main)_16%,transparent)]"
-                            style={{ backgroundColor: "color-mix(in srgb, var(--color-bg-card) 65%, transparent)" }}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                            style={{
+                                background:
+                                    "color-mix(in srgb, var(--color-api-second) 12%, var(--color-bg-tertiary))",
+                                color: "var(--color-api-second)",
+                            }}
                         >
-                            <span
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ backgroundColor: statusUI.dotColorVar }}
-                                aria-hidden
-                            />
-                            <span className="whitespace-nowrap">{statusUI.label}</span>
+                            <Package className="h-5 w-5" aria-hidden />
                         </div>
-                    </div>
-                </div>
-
-                {/* Dotted divider */}
-                <div
-                    className="mx-4 border-b border-dotted"
-                    style={{ borderColor: "color-mix(in srgb, var(--color-text-tertiary) 35%, transparent)" }}
-                />
-
-                <div className="flex items-center justify-end px-4 py-4">
-                    <div className={cn("min-w-0", isRTL ? "text-left" : "text-right")}>
-                        <p className="text-xs text-text-secondary">{t("checkout.total", "Total")}</p>
-                        <p className="text-xl font-bold text-primary tabular-nums">{total}</p>
-                    </div>
-                </div>
-
-                {/* Delivery address */}
-                {deliveryAddress && (
-                    <>
-                        <div className="mx-4 border-t border-custom-primary" />
-                        <div className="flex items-start gap-2 px-4 py-3">
-                            <p className="min-w-0 flex-1 text-xs leading-relaxed text-text-secondary">
-                                <span className="text-text-tertiary">{t("orders.deliveredTo")}: </span>
-                                {deliveryAddress}
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold tracking-tight text-custom-primary">
+                                {t("orders.order")} #{orderNumber}
                             </p>
-                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-tertiary" />
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-custom-secondary">
+                                <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                                <span className="truncate">{dateTime}</span>
+                            </p>
                         </div>
-                    </>
+                    </div>
+
+                    <span
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium"
+                        style={{ backgroundColor: tone.badgeBg, color: tone.badgeText }}
+                    >
+                        <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: tone.dot }}
+                            aria-hidden
+                        />
+                        {tone.label}
+                    </span>
+                </div>
+
+                {(primaryItem || scheduledLabel) && (
+                    <div className="mt-4 space-y-1.5 rounded-xl bg-[color-mix(in_srgb,var(--color-bg-tertiary)_55%,transparent)] px-3.5 py-3">
+                        {primaryItem?.store ? (
+                            <p className="text-xs font-medium text-custom-primary">
+                                {primaryItem.store}
+                            </p>
+                        ) : null}
+                        {primaryItem?.name ? (
+                            <p className="text-xs text-custom-secondary">{primaryItem.name}</p>
+                        ) : null}
+                        {scheduledLabel ? (
+                            <p className="text-xs text-custom-secondary">
+                                <span className="font-medium text-custom-primary">
+                                    {t("orders.scheduledDelivery", "Delivery appointment")}:
+                                </span>{" "}
+                                {scheduledLabel}
+                            </p>
+                        ) : null}
+                    </div>
                 )}
 
-                {/* Track / Reorder / Complaint buttons */}
+                {deliveryAddress ? (
+                    <div className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-custom-secondary">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-custom-tertiary" aria-hidden />
+                        <p className="min-w-0">
+                            <span className="text-custom-tertiary">{t("orders.deliveredTo")}: </span>
+                            {deliveryAddress}
+                        </p>
+                    </div>
+                ) : null}
+
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-[var(--color-border-primary)] pt-4">
+                    <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-custom-tertiary">
+                            {t("checkout.total", "Total")}
+                        </p>
+                        <p className="mt-0.5 text-xl font-bold tabular-nums tracking-tight text-custom-primary">
+                            {total}
+                        </p>
+                    </div>
+                    {hasPayment ? (
+                        <p className="max-w-[45%] truncate text-end text-xs text-custom-secondary">
+                            {paymentMethod.includes("ending")
+                                ? `${t("orders.visaEnding")} ${last4}`
+                                : paymentMethod}
+                        </p>
+                    ) : null}
+                </div>
+
                 {(onTrackOrder || onReorder || onAddComplaint) && (
-                    <div className="flex flex-wrap gap-2 px-4 pb-2">
-                        {onTrackOrder && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {onTrackOrder ? (
                             <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); onTrackOrder?.(); }}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-custom-primary px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-custom-primary/10 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onTrackOrder();
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] px-3 py-1.5 text-xs font-medium text-custom-primary transition-colors hover:border-[var(--color-border-accent)] hover:bg-[var(--color-bg-tertiary)]"
                             >
-                                <Truck className="h-4 w-4" />
+                                <Truck className="h-3.5 w-3.5" aria-hidden />
                                 {t("orders.trackOrder")}
                             </button>
-                        )}
-                        {onReorder && (
+                        ) : null}
+                        {onReorder ? (
                             <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); onReorder?.(); }}
-                                className="rounded-lg border border-custom-primary px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-custom-primary/10 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReorder();
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-card)] px-3 py-1.5 text-xs font-medium text-custom-primary transition-colors hover:border-[var(--color-border-accent)] hover:bg-[var(--color-bg-tertiary)]"
                             >
+                                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                                 {t("orders.reorder")}
                             </button>
-                        )}
-                        {onAddComplaint && (
+                        ) : null}
+                        {onAddComplaint ? (
                             <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); onAddComplaint?.(); }}
-                                className="text-xs text-text-secondary underline-offset-2 hover:underline"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAddComplaint();
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-custom-secondary transition-colors hover:text-custom-primary"
                             >
+                                <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
                                 {t("orders.addComplaint")}
                             </button>
-                        )}
+                        ) : null}
                     </div>
                 )}
 
-                {/* Cancel / View Details */}
                 {(canCancel || onViewDetails) && (
-                    <>
-                        <div className="mx-4 border-t border-custom-primary" />
-                        <div className="flex gap-2 p-4">
-                            {canCancel && (
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onCancelOrder?.(); }}
-                                    className="inline-flex min-w-0 flex-1 shrink items-center justify-center gap-1.5 rounded-xl border border-error bg-error/5 px-2 py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/10 sm:max-w-[140px] sm:flex-none"
-                                >
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-error">
-                                        <X className="h-3 w-3" strokeWidth={2.5} />
-                                    </span>
-                                    {t("common.cancel")}
-                                </button>
-                            )}
-                            {onViewDetails && (
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
-                                    className="min-w-0 flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors bg-[var(--color-api-second)] hover:bg-[var(--color-api-second-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-main)]/35"
-                                >
-                                    {t("orders.viewDetails")}
-                                </button>
-                            )}
-                        </div>
-                    </>
+                    <div className="mt-4 flex gap-2 border-t border-[var(--color-border-primary)] pt-4">
+                        {canCancel ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onCancelOrder?.();
+                                }}
+                                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--color-error)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-error)_6%,transparent)] px-3 py-2.5 text-sm font-medium text-[var(--color-error)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-error)_12%,transparent)] sm:max-w-[140px] sm:flex-none"
+                            >
+                                <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                                {t("common.cancel")}
+                            </button>
+                        ) : null}
+                        {onViewDetails ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewDetails();
+                                }}
+                                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl bg-[var(--color-api-second)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-api-second-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-main)]/30"
+                            >
+                                {t("orders.viewDetails")}
+                                <DetailsChevron className="h-4 w-4 opacity-90" aria-hidden />
+                            </button>
+                        ) : null}
+                    </div>
                 )}
 
-                {/* Footer: payment, additionalInfo, refund */}
-                {(additionalInfo || refundStatus || (paymentMethod && paymentMethod !== "-" && paymentMethod !== "—")) && (
-                    <div className="space-y-1 border-t border-custom-primary/80 bg-[color-mix(in_srgb,var(--color-bg-tertiary)_45%,transparent)] px-4 py-3 text-xs text-text-secondary backdrop-blur-[1px]">
-                        {paymentMethod && paymentMethod !== "-" && paymentMethod !== "—" && (
-                            <p>
-                                {t("orders.payment")}:{" "}
-                                {paymentMethod.includes("ending")
-                                    ? `${t("orders.visaEnding")} ${last4}`
-                                    : paymentMethod}
-                            </p>
-                        )}
-                        {additionalInfo && <p>{additionalInfo}</p>}
-                        {refundStatus && (
-                            <p className="font-medium text-success">{refundStatus}</p>
-                        )}
+                {(additionalInfo || refundStatus) && (
+                    <div className="mt-3 space-y-1 text-xs text-custom-secondary">
+                        {additionalInfo ? <p>{additionalInfo}</p> : null}
+                        {refundStatus ? (
+                            <p className="font-medium text-[var(--color-success)]">{refundStatus}</p>
+                        ) : null}
                     </div>
                 )}
             </div>
-        </div>
+        </article>
     );
 }
